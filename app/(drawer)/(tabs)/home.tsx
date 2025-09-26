@@ -1,6 +1,6 @@
 import { View, Text, ActivityIndicator } from 'react-native'
 import React from 'react'
-import { useAuth } from '../lib/AuthProvid';
+import { useAuth } from '../../lib/AuthProvid';
 import { Redirect } from 'expo-router';
 
 const Home = () => {

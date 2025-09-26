@@ -12,7 +12,7 @@ export default function AuthLayout() {
    const isOnboarding = pathname === "/(auth)/onboarding"; // adjust case to your file
   // console.Console;
   if (session && !isOnboarding) {
-    console.log("I am accessing");
+    console.log("I go the session");
     return <Redirect href="/(tabs)/home" />;
     
   }

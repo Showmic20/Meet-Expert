@@ -1,12 +1,15 @@
+import { DrawerActions, useNavigation } from "@react-navigation/native";
 import React from "react";
 import { View, ScrollView, Image, StyleSheet, StatusBar } from "react-native";
 import { Text, Avatar, IconButton, Card, Button } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
+  const navigation = useNavigation();
   return (<>
     <StatusBar barStyle="dark-content" backgroundColor="white" />
     <SafeAreaView style ={{flex: 1, backgroundColor :"white"}}>
+    
       <ScrollView style={styles.container}>
         {/* Cover Photo */}
         <View style={styles.coverContainer}>
@@ -19,7 +22,7 @@ export default function ProfileScreen() {
             icon="menu"
             size={24}
             style={[styles.icon, { left: 10 }]}
-            onPress={() => {}}
+            onPress={() => {} } //navigation.dispatch(DrawerActions.openDrawer()
           />
           {/* Edit cover photo */}
           <IconButton

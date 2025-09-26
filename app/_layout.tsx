@@ -1,23 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "./lib/superbase";  // Import supabase client
-import { Stack, Redirect } from "expo-router";  // Redirect for navigation
-import { AuthProvider } from "./lib/authContext";  // Import AuthProvider
-import { Text, View } from "react-native";  // Import Text and View components for rendering
+// app/_layout.tsx (root)
+import React, { useMemo, useState } from "react";
+import { Stack } from "expo-router";
 import AuthProvider2 from "./lib/AuthProvid";
+import { Provider as PaperProvider, MD3LightTheme, MD3DarkTheme } from "react-native-paper";
+import { StatusBar } from "react-native";
 
-const RootLayout = () => {
-  const [session, setSession] = useState<any>(null);  // State to store the session
+export const ThemeCtx = React.createContext({ dark: false, toggle: () => {} });
 
- 
+export default function RootLayout() {
+  const [dark, setDark] = useState(false);
+  const toggle = () => setDark(v => !v);
+  const theme = useMemo(() => (dark ? MD3DarkTheme : MD3LightTheme), [dark]);
+
   return (
     <AuthProvider2>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />  {/* Login/signup screens */}
-        <Stack.Screen name="(tabs)" />  {/* Tabs screen */}
-      </Stack>
+      <ThemeCtx.Provider value={{ dark, toggle }}>
+        <PaperProvider theme={theme}>
+          <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" /> {/* tabs are now wrapped by drawer inside their own _layout */}
+          </Stack>
+        </PaperProvider>
+      </ThemeCtx.Provider>
     </AuthProvider2>
   );
-};
-
-export default RootLayout;
-  
+}
