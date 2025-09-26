@@ -6,7 +6,8 @@ import { useAuth } from './lib/AuthProvid';
 const Index = () => {
   const{session} = useAuth();
   if(!session)
-  return <Redirect href="/(auth)/login" />;
+ return <Redirect href="/(auth)/login" />;
+ // return <Redirect href= "/(auth)/onboarding" />
   
 }
 

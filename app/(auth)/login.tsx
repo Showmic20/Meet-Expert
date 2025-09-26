@@ -13,17 +13,32 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push("/(tabs)/home");
-    }
-  };
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error && data.user) {
+      await supabase.from("users").upsert({
+        id: data.user.id,
+        has_onboarded: false,
+      });
+      router.replace("/(auth)/onboarding");
+}
+    // const { data, error } = await supabase.auth.signInWithPassword({
+    //   email,
+    //   password,
+    // });
+
+    // if (error) {
+    //   setError(error.message);
+    // } else {
+    //    // router.push("/(tabs)/chat");
+     
+    //   }
+
+  //   setError(null);
+  // const { error } = await supabase.auth.signInWithPassword({ email, password });
+  // if (error) { setError(error.message); return; }
+    };
 
   return (
     <KeyboardAvoidingView
