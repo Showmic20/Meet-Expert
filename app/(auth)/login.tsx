@@ -12,33 +12,24 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async () => {
-
-
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error && data.user) {
-      await supabase.from("users").upsert({
-        id: data.user.id,
-        has_onboarded: false,
-      });
-      router.replace("/(auth)/onboarding");
-}
-    // const { data, error } = await supabase.auth.signInWithPassword({
-    //   email,
-    //   password,
-    // });
-
-    // if (error) {
-    //   setError(error.message);
-    // } else {
-    //    // router.push("/(tabs)/chat");
-     
-    //   }
-
-  //   setError(null);
-  // const { error } = await supabase.auth.signInWithPassword({ email, password });
-  // if (error) { setError(error.message); return; }
-    };
+const handleLogin = async () => {
+  console.log("Login button clicked");
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    // show error to user
+    return;
+  }
+  if (data.user) {
+    await supabase.from("users").upsert({
+      id: data.user.id,
+      first_name: "Unknown",
+      last_name: "Unknown",
+      // leave everything else null
+    });
+    console.log("in front of on board");
+    router.replace("/(auth)/onboarding");
+  }
+};
 
   return (
     <KeyboardAvoidingView

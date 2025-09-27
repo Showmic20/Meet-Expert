@@ -23,14 +23,7 @@ const Signup = () => {
     } else {
       setSuccess("Signup successful! Please check your email to confirm.");
       const userId = data.user?.id;
-        if (userId) {
-      // make sure row exists
-          console.log("trying to create a row");
-          await supabase.from("users").upsert({
-          id: userId,
-          has_onboarded: false,});
-            
-        }
+     
       setTimeout(() => {
         //router.push("/(auth)/onBoarding");
         router.push("/(auth)/login");

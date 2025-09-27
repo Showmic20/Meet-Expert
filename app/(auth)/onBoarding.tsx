@@ -1,29 +1,31 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
 import { router } from "expo-router";
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, Image, Alert } from 'react-native';
 import Onboarding from 'react-native-onboarding-swiper';
 import { supabase } from '../lib/superbase';
 import { useAuth } from 'app/lib/AuthProvid';
+import * as Mime from 'react-native-mime-types';
 
 // ---------- helpers ---------------------------------------------------------
 const uniq = (arr: string[]) => Array.from(new Set(arr.map((s) => s.trim()).filter(Boolean)));
 
 async function uploadProfileImage(userId: string, uri: string | null): Promise<string | null> {
   if (!uri) return null;
-  const resp = await fetch(uri);
-  const blob = await resp.blob();
-  const fileExt = uri.split('.').pop() || 'jpg';
-  const filePath = `${userId}.${fileExt}`;
+  const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+  const filePath = `${userId}.${ext}`;
+  const file = { uri, name: filePath, type: ext === 'png' ? 'image/png' : 'image/jpeg' } as any;
+
   const { data, error } = await supabase.storage
     .from('profiles')
-    .upload(filePath, blob, { upsert: true, contentType: blob.type || 'image/jpeg' });
+    .upload(filePath, file, { upsert: true, contentType: file.type });
+
   if (error) throw error;
-  const { data: pub } = supabase.storage.from('profiles').getPublicUrl(data?.path || filePath);
-  return pub.publicUrl || null;
+
+  const { data: pub } = supabase.storage.from('profiles').getPublicUrl(data.path);
+  return pub.publicUrl ?? null;
 }
 
 async function upsertVocabAndLink(
@@ -47,7 +49,7 @@ async function upsertVocabAndLink(
 
 // ---------- component -------------------------------------------------------
 const OnboardingSwiper = () => {
-  const router = useRouter();
+ 
   // this is for testing
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -87,15 +89,14 @@ const OnboardingSwiper = () => {
     if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
-  const addChips = (type: 'skill' | 'interest') => {
-    if (type === 'skill') {
-      setSkills((prev) => uniq([...prev, ...skillsInput.split(',')]));
-      setSkillsInput('');
-    } else {
-      setInterests((prev) => uniq([...prev, ...interestsInput.split(',')]));
-      setInterestsInput('');
-    }
-  };
+const addChips = (type: 'skill' | 'interest') => {
+  const src = type === 'skill' ? skillsInput : interestsInput;
+  const values = uniq(src.split(',')).filter(Boolean);
+  if (!values.length) return;
+  type === 'skill' ? setSkills((p) => uniq([...p, ...values])) : setInterests((p) => uniq([...p, ...values]));
+  type === 'skill' ? setSkillsInput('') : setInterestsInput('');
+};
+
 
   const removeChip = (type: 'skill' | 'interest', value: string) => {
     if (type === 'skill') setSkills((arr) => arr.filter((x) => x !== value));
@@ -103,54 +104,55 @@ const OnboardingSwiper = () => {
   };
 
   const finish = async () => {
-  //  try {
-  //   console.log("Im am here");
+   try {
+    console.log("Im am in Onboard");
     
-  //   // 1) Ensure session
-  //   const { data: { session } } = await supabase.auth.getSession();
-  //   if (!session?.user) {
-  //     router.replace('/(auth)/login');
-  //     return;
-  //   }
-  //   const userId = session.user.id;
+    // 1) Ensure session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      router.replace('/(auth)/login');
+      return;
+    }
+    const userId = session.user.id;
 
-  //   // 2) Upload avatar (optional)
-  //   const profileUrl = await uploadProfileImage(userId, imageUri);
+    // 2) Upload avatar (optional)
+    const profileUrl = await uploadProfileImage(userId, imageUri);
 
-  //   // 3) Upsert user profile
-  //   const payload: any = {
-  //     id: userId,
-  //     first_name: firstName.trim(),
-  //     last_name: lastName.trim(),
-  //     company_name: company.trim() || null,
-  //     occupation: occupation.trim() || null,
-  //     bio: bio.trim() || null,
-  //     profile_picture_url: profileUrl,
-  //     is_expert: isExpert,
-  //     expert_since: isExpert ? new Date().toISOString() : null,
-  //     // 🔹 if column exists, you can set true now or after links—either is fine
-  //     has_onboarded: true,
-  //   };
-  //   if (dob) payload.dob = dob.toISOString().slice(0, 10);
+    // 3) Upsert user profile
+    const payload: any = {
+      id: userId,
+      first_name: (firstName || "").trim() || "Unknown",
+      last_name:  (lastName  || "").trim() || "Unknown",
+      company_name: company.trim() || null,
+      occupation: occupation.trim() || null,
+      bio: bio.trim() || null,
+      profile_picture_url: profileUrl,
+      is_expert: isExpert,
+      expert_since: isExpert ? new Date().toISOString() : null,
+      // 🔹 if column exists, you can set true now or after links—either is fine
+      has_onboarded: true,
+    };
+    if (dob) payload.dob = dob.toISOString().slice(0, 10);
 
-  //   const { error: upErr } = await supabase.from('users').upsert(payload);
-  //   if (upErr) throw upErr;
+    const { error: upErr } = await supabase.from('users').upsert(payload);
+    if (upErr) throw upErr;
 
-  //   // 4) Link skills & interests (optional)
-  //   if (skills?.length)    await upsertVocabAndLink('skills', 'user_skills', userId, skills);
-  //   if (interests?.length) await upsertVocabAndLink('interests', 'user_interests', userId, interests);
+    // 4) Link skills & interests (optional)
+    if (skills?.length)    await upsertVocabAndLink('skills', 'user_skills', userId, skills);
+    if (interests?.length) await upsertVocabAndLink('interests', 'user_interests', userId, interests);
 
-  //   // 5) (Optional) If you didn’t set has_onboarded above, do it here:
-  //   // await supabase.from('users').update({ has_onboarded: true }).eq('id', userId);
+    // 5) (Optional) If you didn’t set has_onboarded above, do it here:
+    // await supabase.from('users').update({ has_onboarded: true }).eq('id', userId);
 
-  //   // 6) Go to app
-  //   router.replace('/(tabs)/home');
-
-  // } catch (e: any) {
-  //   Alert.alert('Onboarding failed', e?.message ?? 'Please try again.');
-  // }
-    setOnboarded(true); 
+    // 6) Go to app
+   setOnboarded(true); 
     router.replace("/(tabs)/home");
+    return;
+
+  } catch (e: any) {
+    Alert.alert('Onboarding failed', e?.message ?? 'Please try again.');
+  }
+    
  
   };
 

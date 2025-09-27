@@ -14,23 +14,10 @@ export default function ProfileScreen() {
         {/* Cover Photo */}
         <View style={styles.coverContainer}>
           <Image
-            source={{ uri: "https://via.placeholder.com/400x150" }}
+            source={{ uri: "https://via.placeholder.com/100" }}
             style={styles.coverPhoto}
           />
-          {/* 3-bar menu */}
-          <IconButton
-            icon="menu"
-            size={24}
-            style={[styles.icon, { left: 10 }]}
-            onPress={() => {} } //navigation.dispatch(DrawerActions.openDrawer()
-          />
-          {/* Edit cover photo */}
-          <IconButton
-            icon="pencil"
-            size={20}
-            style={[styles.icon, { right: 10 }]}
-            onPress={() => {}}
-          />
+     
           {/* Profile Picture */}
           <View style={styles.avatarWrapper}>
             <Avatar.Image
@@ -105,7 +92,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "white" },
   coverContainer: { position: "relative" },
-  coverPhoto: { width: "100%", height: 150 },
+  coverPhoto: { width: "100%", height: 100, color: "black" },
   icon: { position: "absolute", top: 10, backgroundColor: "rgba(255,255,255,0.7)" },
   avatarWrapper: {
     position: "absolute",

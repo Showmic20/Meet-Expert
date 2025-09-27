@@ -1,54 +1,98 @@
+// lib/AuthProvid.tsx  (your AuthProvider2)
 import { PropsWithChildren, createContext, useContext, useEffect, useState } from "react";
-import { Alert } from "react-native";  // For showing logout confirmation alert
 import supabase from "./superbase";
 import { Session } from "@supabase/supabase-js";
 
-// Define the AuthData type (optional, for better types in your app)
 type AuthData = {
-     session: Session | null;
-     loading : boolean;
-
-
+  session: Session | null;
+  loading: boolean;            // auth loading
+  onboarded: boolean;          // from DB
+  profileLoading: boolean;     // users row loading
+  setOnboarded: (v: boolean) => void;
+  refreshProfile: () => Promise<void>;       // auth/session loading
+  onboarded: boolean;          // from DB
+  profileLoading: boolean;     // users row loading
+  setOnboarded: (v: boolean) => void;
+  refreshProfile: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthData>({session:null, loading: true});
+const AuthContext = createContext<AuthData>({
+  session: null, loading: true,
+  onboarded: false, profileLoading: true,
+  setOnboarded: () => {}, refreshProfile: async () => {}
+});
 
 export default function AuthProvider2({ children }: PropsWithChildren) {
-     const [session, setSession] = useState<Session|null>(null);
-     const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const fetchSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      console.log("Session data:", data);
-      setSession (data.session);
-      setLoading(false);
-    };
-    fetchSession();
+  const [session, setSession] = useState<Session|null>(null);
+  const [loading, setLoading] = useState(true);
+  const [onboarded, setOnboarded] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
 
-    supabase.auth.onAuthStateChange((_event, session)=>{
-     setSession(session);
-    });
+  async function ensureUserRow(userId: string) {
+    await supabase.from("users").upsert({
+      id: userId,
+      first_name: "Unknown",
+      last_name: "Unknown",
+    }, { onConflict: "id" });
+  }
 
-}, []);
+  async function loadProfile(userId: string) {
+    setProfileLoading(true);
+    const { data, error } = await supabase
+      .from("users")
+      .select("has_onboarded")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!error && data) setOnboarded(!!data.has_onboarded);
+    setProfileLoading(false);
+  }
 
-  const logout = async () => {
-    try {
-      // Call the Supabase signOut function to clear the session
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Error logging out:", error.message);
-      } else {
-        // Optionally, you can show a success message
-        Alert.alert("Logged out fsfhhsf!");
-        console.log("User logged out");
-      }
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
+  const refreshProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await loadProfile(user.id);
   };
 
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
+      setSession(data.session);
+      setLoading(false);
+
+      const userId = data.session?.user?.id;
+      if (userId) {
+        await ensureUserRow(userId);
+        await loadProfile(userId);
+      } else {
+        setProfileLoading(false);
+      }
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      setSession(prev => prev?.access_token === newSession?.access_token ? prev : newSession);
+      const userId = newSession?.user?.id;
+      if (userId) {
+        await ensureUserRow(userId);
+        await loadProfile(userId);
+      } else {
+        setOnboarded(false);
+        setProfileLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      sub.subscription?.unsubscribe?.();
+    };
+  }, []);
+
   return (
-    <AuthContext.Provider value={{session,loading}}>
+    <AuthContext.Provider value={{
+      session, loading, onboarded, profileLoading,
+      setOnboarded, refreshProfile
+    }}>
       {children}
     </AuthContext.Provider>
   );
