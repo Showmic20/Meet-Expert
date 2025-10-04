@@ -109,6 +109,7 @@ const addChips = (type: 'skill' | 'interest') => {
     
     // 1) Ensure session
     const { data: { session } } = await supabase.auth.getSession();
+
     if (!session?.user) {
       router.replace('/(auth)/login');
       return;
@@ -134,7 +135,7 @@ const addChips = (type: 'skill' | 'interest') => {
     };
     if (dob) payload.dob = dob.toISOString().slice(0, 10);
 
-    const { error: upErr } = await supabase.from('users').upsert(payload);
+    const { error: upErr } = await supabase.from('users').upsert(payload) .eq('id', userId);
     if (upErr) throw upErr;
 
     // 4) Link skills & interests (optional)

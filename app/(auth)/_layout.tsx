@@ -1,26 +1,25 @@
-// app/(auth)/_layout.tsx
-import { Stack, usePathname, router } from "expo-router";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "../lib/AuthProvid";
+import { router, Stack } from "expo-router";
 
 export default function AuthLayout() {
-  const { session, loading, onboarded, profileLoading } = useAuth();
-  const pathname = usePathname();
-  const isOnboarding = pathname === "/(auth)/onboarding";
+  const { session, loading, onboarded } = useAuth();
 
+  // Always call hooks first
   useEffect(() => {
-    if (loading || profileLoading) return;
+    if (loading || onboarded === null) return; // wait until data is loaded
 
-    if (session) {
-      if (!onboarded && !isOnboarding) {
-        router.replace("/(auth)/onboarding");
-      } else if (onboarded && isOnboarding) {
-        router.replace("/(tabs)/home");
-      }
+    if (!session) {
+      router.replace("/(auth)/login");
+    } else if (!onboarded) {
+      router.replace("/(auth)/onboarding");
+    } else {
+      router.replace("/(tabs)/home");
     }
-  }, [session, loading, profileLoading, onboarded, isOnboarding]);
+  }, [loading, session, onboarded]);
 
-  if (loading || profileLoading) return null;
+  // Conditional rendering is fine here
+  if (loading || onboarded === null) return null;
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }

@@ -1,6 +1,6 @@
 // app/(auth)/login.tsx
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from "react-native";
+import { View, Text, TouchableOpacity, Keyboard, TouchableWithoutFeedback, Alert } from "react-native";
 import { TextInput, Button, Paragraph } from "react-native-paper"; // Import Paper components
 import { supabase } from "../lib/superbase"; // Import Supabase client
 import { router } from "expo-router";
@@ -12,24 +12,34 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+// handleLogin
 const handleLogin = async () => {
   console.log("Login button clicked");
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    // show error to user
+     Alert.alert("Check your Connectin!!!");
+    console.error(error);
     return;
   }
+
+  // Ensure user row exists
   if (data.user) {
     await supabase.from("users").upsert({
       id: data.user.id,
       first_name: "Unknown",
       last_name: "Unknown",
-      // leave everything else null
-    });
-    console.log("in front of on board");
-    router.replace("/(auth)/onboarding");
+    },{ onConflict: "id", ignoreDuplicates: true});
+
+    // Fetch session immediately
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.log("Session after login:", sessionData.session);
+
+    // Redirect to onboarding
+    //router.replace("/(auth)/onboarding");
   }
 };
+
+
 
   return (
     <KeyboardAvoidingView
