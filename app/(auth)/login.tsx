@@ -35,7 +35,7 @@ const handleLogin = async () => {
     console.log("Session after login:", sessionData.session);
 
     // Redirect to onboarding
-    //router.replace("/(auth)/onboarding");
+    router.replace("/(auth)/onboarding");
   }
 };
 

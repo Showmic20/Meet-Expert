@@ -56,6 +56,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+       <Tabs.Screen name="user/[id]" options={{ href: null, headerShown:false }} />
     </Tabs>
   );
 }
