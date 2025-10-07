@@ -1,10 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, ScrollView, Image, StyleSheet, StatusBar, RefreshControl } from "react-native";
-import { Text, Avatar, IconButton, Card, Button, ActivityIndicator, Chip } from "react-native-paper";
+import {
+  Text,
+  Avatar,
+  IconButton,
+  Card,
+  Button,
+  ActivityIndicator,
+  Chip,
+  Portal,
+  Modal,
+  RadioButton,
+  Divider,
+  Snackbar ,
+} from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-//import { useNavigation, useRoute } from "@react-navigation/native";
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 // ⬇️ keep your paths
 import { useAuth } from "../../lib/AuthProvid";
@@ -21,36 +32,60 @@ export type DBUser = {
   is_expert: boolean;
   expert_since: string | null;
   updated_at?: string | null; // for cache-busting
+  rating?: number | null;
+  rank?: string | null;
+  chat_subscription_bdt?: number | null;
+  [key: string]: any;
 };
+type Plan = "15" | "30" | "60";
 
 export default function ProfileScreen() {
-  
-const { id: paramUserId } = useLocalSearchParams<{ id?: string }>();
-
+  const router = useRouter();
+  const { id: paramUserId } = useLocalSearchParams<{ id?: string }>();
   const { session, loading: authLoading } = useAuth();
 
   // if a userId is passed via route, view THAT profile; else view self
- // const paramUserId = route?.params?.userId as string | undefined;
   const selfUserId = session?.user?.id as string | undefined;
   const userId = paramUserId ?? selfUserId;
   const viewingSelf = !!selfUserId && userId === selfUserId;
-
+  const [snack, setSnack] = useState<{visible:boolean; text:string}>({visible:false, text:""});
   const [user, setUser] = useState<DBUser | null>(null);
   const [skills, setSkills] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [cacheBust, setCacheBust] = useState(0);
+  const showToast = (text: string) => setSnack({visible:true, text});
+
+  // Chat modal state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Plan>("30");
 
   const fullName = useMemo(() => {
     if (!user) return "User";
     return `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
   }, [user]);
 
-  const profession = user?.occupation || "Profession";
+  const profession = user?.occupation || "—";
   const bio = user?.bio || "Add a short bio about yourself.";
   const company = user?.company_name || "—";
   const expert = !!user?.is_expert;
   const expertSince = user?.expert_since ? new Date(user.expert_since).toLocaleDateString() : "—";
+
+  const rating = user?.rating ?? null;
+  const rank = user?.rank ?? null;
+  const chatSub = user?.chat_subscription_bdt ?? null;
+
+  const formatBDT = (n: number | null) => (n == null ? "—" : `${n.toLocaleString()} BDT`);
+  
+  // derived pack prices (based on per-hour subscription)
+  const packPrices = useMemo(() => {
+    const perHour = chatSub ?? 50;
+    return {
+      "15": Math.round(perHour * 0.25), // 15 mins
+      "30": Math.round(perHour * 0.5),  // 30 mins
+      "60": Math.round(perHour * 1.0),  // 60 mins
+    };
+  }, [chatSub]);
 
   // Build cache-busted avatar URL so RN reloads on changes
   const avatarSrc = useMemo(() => {
@@ -61,11 +96,7 @@ const { id: paramUserId } = useLocalSearchParams<{ id?: string }>();
 
   const fetchUser = useCallback(async () => {
     if (!userId) return;
-    const { data, error } = await supabase
-      .from("users")
-      .select("id, first_name, last_name, company_name, occupation, bio, profile_picture_url, is_expert, expert_since, updated_at")
-      .eq("id", userId)
-      .single();
+    const { data, error } = await supabase.from("users").select("*").eq("id", userId).single();
     if (error) throw error;
     setUser(data as DBUser);
     setCacheBust((n) => n + 1); // ensure avatar refreshes even if updated_at didn't change
@@ -141,6 +172,39 @@ const { id: paramUserId } = useLocalSearchParams<{ id?: string }>();
     setRefreshing(false);
   }, [fetchAll]);
 
+  // Start Chat handler (navigate to your chat screen)
+const onStartChat = useCallback(async () => {
+  if (!userId || !selfUserId) return;
+
+  try {
+    // prevent self-requests
+    if (viewingSelf) {
+      showToast("You can't start a chat with yourself.");
+      return;
+    }
+
+    // insert row
+    const { error } = await supabase.from("chat_requests").insert({
+      requester_id: selfUserId,    // me (non-expert)
+      expert_id: userId,           // viewed profile (expert)
+      plan: selectedPlan,          // "15" | "30" | "60"
+      status: "pending",
+    });
+
+    if (error) throw error;
+
+    showToast("Chat request sent!");
+    setChatOpen(false);
+
+    // optional: jump to my Chat tab to see outgoing
+    // router.push("/chat"); // only if you have a chat tab route
+  } catch (e: any) {
+    console.warn("Chat request error:", e);
+    showToast("Failed to send request.");
+  }
+}, [userId, selfUserId, viewingSelf, selectedPlan]);
+
+
   return (
     <>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
@@ -188,26 +252,48 @@ const { id: paramUserId } = useLocalSearchParams<{ id?: string }>();
             </View>
           </View>
 
-          {/* Info Cards */}
+          {/* Info Cards — Rating, Rank, Chat */}
           <View style={styles.infoCards}>
-            <Card style={styles.card}>
-              <Card.Content style={styles.cardContent}>
-                <Text>🏢 {company}</Text>
-                <Text>Company</Text>
-              </Card.Content>
-            </Card>
-            <Card style={styles.card}>
-              <Card.Content style={styles.cardContent}>
-                <Text>👤 {expert ? "Expert" : "User"}</Text>
-                <Text>Status</Text>
-              </Card.Content>
-            </Card>
-            <Card style={styles.card}>
-              <Card.Content style={styles.cardContent}>
-                <Text>🧑‍💻 {profession || "—"}</Text>
-                <Text>Occupation</Text>
-              </Card.Content>
-            </Card>
+              <Card style={styles.infoCards} onPress={undefined}>
+    <Card.Content style={styles.cardContent}>
+      <Text>⭐ {rating == null ? "—" : Number(rating).toFixed(1)}</Text>
+      <Text>Rating</Text>
+    </Card.Content>
+  </Card>
+
+  <Card style={styles.infoCards} onPress={undefined}>
+    <Card.Content style={styles.cardContent}>
+      <Text>🏆 {rank || "—"}</Text>
+      <Text>Rank</Text>
+    </Card.Content>
+  </Card>
+
+  {/* Make THE card itself pressable (no overlay, no absolute) */}
+  <Card
+    style={styles.infoCards}
+    onPress={!viewingSelf ? () => setChatOpen(true) : undefined}
+  >
+    <Card.Content style={styles.cardContent}>
+      <Text>💬 {formatBDT(chatSub)}</Text>
+      <Text>Chat</Text>
+      {!viewingSelf ? (
+        <Text style={{ color: "gray", marginTop: 4 }}>Tap to choose a pack</Text>
+      ) : null}
+    </Card.Content>
+  </Card>
+          </View>
+
+          {/* About Section — company & occupation */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>About</Text>
+            </View>
+            <Text style={styles.aboutLine}>
+              🏢 Company: <Text style={{ fontWeight: "600" }}>{company}</Text>
+            </Text>
+            <Text style={styles.aboutLine}>
+              🧑‍💻 Occupation: <Text style={{ fontWeight: "600" }}>{profession}</Text>
+            </Text>
           </View>
 
           {/* Bio Section */}
@@ -241,6 +327,61 @@ const { id: paramUserId } = useLocalSearchParams<{ id?: string }>();
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* CHAT PACK MODAL */}
+      <Portal>
+        <Modal
+          visible={chatOpen}
+          onDismiss={() => setChatOpen(false)}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text style={styles.modalTitle}>Choose a chat pack</Text>
+          <Text style={styles.modalSubtitle}>
+            {chatSub ? `Base rate: ${formatBDT(chatSub)} / hour` : "No pricing set."}
+          </Text>
+
+          <Divider style={{ marginVertical: 8 }} />
+<RadioButton.Group
+  value={selectedPlan}
+  onValueChange={(v) => setSelectedPlan(v as Plan)}
+>
+  <RadioButton.Item
+    value="15"
+    label={`15 minutes — ${formatBDT(packPrices["15"])}`}
+    position="leading"
+  />
+  <RadioButton.Item
+    value="30"
+    label={`30 minutes — ${formatBDT(packPrices["30"])}`}
+    position="leading"
+  />
+  <RadioButton.Item
+    value="60"
+    label={`60 minutes — ${formatBDT(packPrices["60"])}`}
+    position="leading"
+  />
+</RadioButton.Group>
+
+          <Button
+            mode="contained"
+            style={{ marginTop: 16 }}
+           // disabled={!userId || !chatSub}
+            onPress={onStartChat}
+          >
+            Start Chat
+          </Button>
+
+          <Button style={{ marginTop: 8 }} onPress={() => setChatOpen(false)}>Cancel</Button>
+        </Modal>
+      </Portal>
+      <Snackbar
+        visible={snack.visible}
+        onDismiss={() => setSnack({visible:false, text:""})}
+        duration={2500}
+          >
+        {snack.text}
+</Snackbar>
+
     </>
   );
 }
@@ -260,5 +401,18 @@ const styles = StyleSheet.create({
   section: { marginTop: 20, paddingHorizontal: 16 },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   sectionTitle: { fontSize: 18, fontWeight: "bold" },
+  aboutLine: { color: "gray", marginTop: 4, lineHeight: 20 },
   bio: { color: "gray", marginTop: 4, lineHeight: 20 },
+
+  // Modal
+  modalContainer: {
+    marginHorizontal: 20,
+    backgroundColor: "white",
+    padding: 16,
+    borderRadius: 16,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "600" },
+  modalSubtitle: { color: "gray", marginTop: 4 },
+  planRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  planText: { fontSize: 16, marginLeft: 6 },
 });
