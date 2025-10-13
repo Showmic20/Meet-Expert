@@ -206,11 +206,7 @@ export default function ChatsTab() {
   return (
     <>
       {/* TEMP DEBUG so we know whom we’re querying for */}
-      {__DEV__ && (
-        <Text style={{ color: "gray", textAlign: "center", marginTop: 4, fontSize: 12 }}>
-          debug → me: {me}
-        </Text>
-      )}
+  
 
       <SectionList
         sections={sections}

@@ -55,6 +55,7 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [cacheBust, setCacheBust] = useState(0);
   const showToast = (text: string) => setSnack({visible:true, text});
+  const PLACEHOLDER = "https://via.placeholder.com/150";
 
   // Chat modal state
   const [chatOpen, setChatOpen] = useState(false);
@@ -76,7 +77,12 @@ export default function ProfileScreen() {
   const chatSub = user?.chat_subscription_bdt ?? null;
 
   const formatBDT = (n: number | null) => (n == null ? "—" : `${n.toLocaleString()} BDT`);
-  
+  function withCacheBuster(url?: string | null, ver?: string | number | null) {
+  if (!url) return PLACEHOLDER;
+  const v = ver ?? Date.now();          // fall back to now if you don't track updated_at
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}v=${encodeURIComponent(String(v))}`;
+}
   // derived pack prices (based on per-hour subscription)
   const packPrices = useMemo(() => {
     const perHour = chatSub ?? 50;
@@ -89,7 +95,7 @@ export default function ProfileScreen() {
 
   // Build cache-busted avatar URL so RN reloads on changes
   const avatarSrc = useMemo(() => {
-    const base = user?.profile_picture_url || "https://via.placeholder.com/150";
+    const base = user?.profile_picture_url || "https://via.placeholder.com/120";
     const ver = user?.updated_at ?? cacheBust; // if updated_at missing, fall back to local bump
     return `${base}?v=${encodeURIComponent(String(ver))}`;
   }, [user?.profile_picture_url, user?.updated_at, cacheBust]);
@@ -208,7 +214,7 @@ const onStartChat = useCallback(async () => {
   return (
     <>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
-      <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}edges={["bottom", "left", "right"]}>
         {(authLoading || loading) && (
           <View style={{ paddingTop: 8 }}>
             <ActivityIndicator animating size={24} />

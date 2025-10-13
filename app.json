@@ -7,15 +7,19 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "meetexpert",
+    "runtimeVersion": { "policy": "appVersion" },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "com.yourname.meetexpert",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.yourname.meetexpert",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -26,9 +30,12 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      "expo-secure-store"
-    ]
+    "plugins": ["expo-router", "expo-secure-store"],
+    "extra": {
+      "router": {},
+      "eas": { "projectId": "a4a44bfc-b512-4af9-bb70-a5c24cd55e38" }
+    },
+    "owner": "swarup101",
+    "experiments": { "tsconfigPaths": true }
   }
 }
