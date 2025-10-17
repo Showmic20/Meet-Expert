@@ -1,11 +1,12 @@
 // app/(auth)/signup.tsx
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from "react-native";
+import { View, Text, TouchableOpacity, Keyboard, TouchableWithoutFeedback, Image } from "react-native";
 import { TextInput, Button, Paragraph } from "react-native-paper"; // Import Paper components
 import { supabase } from "../lib/superbase"; // Import Supabase client
 import { router } from "expo-router";
 import { KeyboardAvoidingView, Platform } from "react-native";
-
+import { StyleSheet } from "react-native";
+const logo = require("assets/images/meetexpertlogo.png")
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,6 +39,9 @@ const Signup = () => {
     >
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 16 }}>
+
+          <Image source ={logo} style ={[styles.imagestyle]}/>
+
           <TextInput
             label="Email"
             value={email}
@@ -67,3 +71,14 @@ const Signup = () => {
 };
 
 export default Signup;
+const styles = StyleSheet.create({
+  shadowBox: {
+      elevation: 5, // For Android shadow
+    shadowColor: "#000", // iOS shadow color
+    shadowOffset: { width: 0, height: 4 }, // iOS shadow offset
+    shadowOpacity: 0.5, // iOS shadow opacity
+    shadowRadius: 4, // iOS shadow radius
+  },
+  imagestyle:
+  {height: 100, width: 100, marginBottom: 100, shadowColor:"black"} ,
+});

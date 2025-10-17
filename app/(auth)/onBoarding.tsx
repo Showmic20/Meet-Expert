@@ -3,11 +3,12 @@ import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from "expo-router";
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, Image, Alert } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, Image, Alert, KeyboardAvoidingView, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
 import Onboarding from 'react-native-onboarding-swiper';
 import { supabase } from '../lib/superbase';
 import { useAuth } from 'app/lib/AuthProvid';
-import * as Mime from 'react-native-mime-types';
+import LottieView from 'lottie-react-native';
+
 
 // ---------- helpers ---------------------------------------------------------
 const uniq = (arr: string[]) => Array.from(new Set(arr.map((s) => s.trim()).filter(Boolean)));
@@ -166,32 +167,56 @@ const addChips = (type: 'skill' | 'interest') => {
       pages={[
         {
           backgroundColor: '#ffffff',
-          title: 'Welcome',
+          image:(
+            <View style = {{marginTop:500}}>
+              <LottieView source={require('assets/animation/Welcome.json')} autoPlay loop style = {styles.lottieani} />
+            </View>
+          ),
+      
           subtitle: (
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
             <View style={styles.centerCol}>
               <Text style={styles.qTitle}>What is your name?</Text>
               <TextInput style={styles.input} placeholder="First name" value={firstName} onChangeText={setFirstName} />
               <TextInput style={styles.input} placeholder="Last name" value={lastName} onChangeText={setLastName} />
             </View>
+                  </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
           ),
         },
+
         {
-          backgroundColor: '#f7dbd0ff',
-          title: 'Work',
+          backgroundColor: '#a5cca8ff',
+           image:(
+            <View style = {{marginTop:500}}>
+              <LottieView source={require('assets/animation/Working People.json')} autoPlay loop style = {{height:300,width:300, }} />
+            </View>
+          ),
           subtitle: (
-            <View style={styles.centerCol}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={{flex:1, width: 320,gap: 10, marginTop: 10}}>
               <Text style={styles.qTitle}>Your occupation</Text>
-              <TextInput style={styles.input} placeholder="e.g. Product Designer" value={occupation} onChangeText={setOccupation} />
-              <Text style={styles.qTitleSmall}>Company (optional)</Text>
+              <TextInput style={styles.input} placeholder=" Product Designer, Doctor, Engineer" value={occupation} onChangeText={setOccupation} />
+              
               <TextInput style={styles.input} placeholder="Company name" value={company} onChangeText={setCompany} />
             </View>
+            </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
           ),
         },
         {
           backgroundColor: '#decee4ff',
-          title: 'Field',
+             image:(
+            <View style = {{marginTop:500}}>
+              <LottieView source={require('assets/animation/Laptop.json')} autoPlay loop style = {{height:300,width:300, }} />
+            </View>
+          ),
           subtitle: (
-            <View style={styles.centerCol}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={{flex:1, width: 320,gap: 10, }}>
               <Text style={styles.qTitle}>Your main field</Text>
               <Picker selectedValue={occupation} onValueChange={(v) => setOccupation(String(v))} style={styles.picker}>
                 <Picker.Item label="Select a field (optional)" value={occupation} />
@@ -204,14 +229,23 @@ const addChips = (type: 'skill' | 'interest') => {
               </Picker>
               <Text style={styles.hint}>You can type a custom occupation on the previous step.</Text>
             </View>
+              </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
           ),
         },
         {
-          backgroundColor: '#ffffff',
-          title: 'About you',
+          backgroundColor: '#a3bafaff',
+          
+          image:(
+            <View style = {{marginTop:500}}>
+              <LottieView source={require('assets/animation/searching for profile.json')} autoPlay loop style = {{height:300,width:300, }} />
+            </View>
+          ),
           subtitle: (
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
             <View style={styles.centerCol}>
-              <Text style={styles.qTitle}>Short bio (optional)</Text>
+              <Text style={styles.qTitle}>Bio (optional)</Text>
               <TextInput
                 style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
                 placeholder="Tell us a bit about yourself"
@@ -220,17 +254,27 @@ const addChips = (type: 'skill' | 'interest') => {
                 multiline
               />
             </View>
+            </TouchableWithoutFeedback>
+                </KeyboardAvoidingView>
           ),
         },
         {
-          backgroundColor: '#f4f6ff',
-          title: 'Skills',
+          backgroundColor: '#c8d2ffff',
+
+          image:(
+            <View style = {{marginTop:400}}>
+              <LottieView source={require('assets/animation/Design.json')} autoPlay loop style = {{height:300, width:300}} />
+            </View>
+          ),
           subtitle: (
+              <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
             <View style={styles.centerCol}>
-              <Text style={styles.qTitle}>Add skills (comma separated)</Text>
+              <Text style={styles.qTitle}>Add skills </Text>
+               <Text style={{fontSize:14, textAlign:'center'}}>(comma separated) </Text>
               <TextInput
                 style={styles.input}
-                placeholder="React, Node, UI/UX"
+                placeholder="React, Node, UI/UX, Fiteness tainer"
                 value={skillsInput}
                 onChangeText={setSkillsInput}
                 onSubmitEditing={() => addChips('skill')}
@@ -244,14 +288,23 @@ const addChips = (type: 'skill' | 'interest') => {
                 ))}
               </View>
             </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
           ),
         },
         {
-          backgroundColor: '#e9fff2',
-          title: 'Interests',
+          backgroundColor: '#ffe9e9ff',
+            image:(
+            <View style = {{marginTop:400}}>
+              <LottieView source={require('assets/animation/Teamwork productivy.json')} autoPlay loop style = {{height:300, width:300}} />
+            </View>
+          ),
           subtitle: (
+              <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
             <View style={styles.centerCol}>
-              <Text style={styles.qTitle}>Interested fields (comma separated)</Text>
+              <Text style={styles.qTitle}>Interested fields </Text>
+              <Text style={{fontSize:14, textAlign:'center'}}>(comma separated) </Text>
               <TextInput
                 style={styles.input}
                 placeholder="FinTech, Health, Education"
@@ -259,7 +312,7 @@ const addChips = (type: 'skill' | 'interest') => {
                 onChangeText={setInterestsInput}
                 onSubmitEditing={() => addChips('interest')}
               />
-              <TouchableOpacity style={styles.addBtn} onPress={() => addChips('interest')}><Text style={styles.addBtnText}>Add</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.addBtn2} onPress={() => addChips('interest')}><Text style={styles.addBtnText}>Add</Text></TouchableOpacity>
               <View style={styles.pillsWrap}>
                 {interests.map((s) => (
                   <TouchableOpacity key={s} style={styles.pill} onPress={() => removeChip('interest', s)}>
@@ -268,18 +321,28 @@ const addChips = (type: 'skill' | 'interest') => {
                 ))}
               </View>
             </View>
+            </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
           ),
         },
         {
           backgroundColor: '#fff',
           title: 'Birthday',
+          
+           image:(
+            <View style = {{marginTop:400,}}>
+              <LottieView source={require('assets/animation/Confetti.json')} autoPlay loop style = {{height:400, width:300}} />
+            </View>
+          ),
           subtitle: (
-            <View style={styles.centerCol}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={{flex:1, width: 320,gap: 10, }}>
               <TouchableOpacity onPress={() => setShowDate(true)}>
                 <Text style={styles.dateBtn}>Pick your birthdate</Text>
-              </TouchableOpacity>
+              </TouchableOpacity >
               {showDate && (
-                <DateTimePicker
+                <DateTimePicker style ={{alignSelf:'center'}}
                   value={dob || new Date('2000-01-01')}
                   mode="date"
                   display="default"
@@ -289,26 +352,44 @@ const addChips = (type: 'skill' | 'interest') => {
                   }}
                 />
               )}
+
               <Text style={styles.hint}>Selected: {dob ? dob.toDateString() : '—'}</Text>
             </View>
+            </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+
           ),
         },
         {
-          backgroundColor: '#fff7f2',
-          title: 'Profile photo',
-          subtitle: (
-            <View style={styles.centerCol}>
+          backgroundColor: '#f8d7f6ff',
+          image:(
+            <View style = {{marginTop:400}}>
+              <LottieView source={require('assets/animation/Image Not Preview.json')} autoPlay loop style = {{height:400, width:300}} />
+            </View>
+          ),
+            subtitle: (
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={{ flex:1, width: 320,gap: 10, marginTop: 30}}>
               {imageUri ? <Image source={{ uri: imageUri }} style={styles.avatar} /> : null}
               <TouchableOpacity onPress={pickImage}><Text style={styles.dateBtn}>Choose image</Text></TouchableOpacity>
               <Text style={styles.hint}>Tap to pick from gallery</Text>
             </View>
+            </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
           ),
         },
         {
-          backgroundColor: '#fefefe',
-          title: 'Expert mode',
+          backgroundColor: '#ccfcccff',
+           image:(
+            <View style = {{marginTop:500}}>
+              <LottieView source={require('assets/animation/Question.json')} autoPlay loop style = {{height:250, width:250}} />
+            </View>
+          ),
           subtitle: (
-            <View style={styles.centerCol}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={{flex:1, width: 320,gap: 10, marginTop: 50}}>
               <Text style={styles.qTitle}>Are you an expert?</Text>
               <View style={styles.radioGroup}>
                 <TouchableOpacity onPress={() => setIsExpert(true)}>
@@ -320,23 +401,34 @@ const addChips = (type: 'skill' | 'interest') => {
               </View>
               <Text style={styles.hint}>You can switch this later in Profile.</Text>
             </View>
+            </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+           
           ),
         },
         {
           backgroundColor: '#ffffff',
-          title: 'All set',
+             image:(
+            <View style = {{marginTop:500}}>
+              <LottieView source={require('assets/animation/Loading 40 _ Paperplane.json')} autoPlay loop style = {{height:400, width:400}} />
+            </View>
+          ),
           subtitle: (
-            <View style={styles.centerCol}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={{  flex:1, width: 320,gap: 10, marginTop: 0}}>
               <Text style={styles.qTitle}>Review & Finish</Text>
               <Text style={styles.review}>Name: {firstName} {lastName}</Text>
               <Text style={styles.review}>Occupation: {occupation || '—'}</Text>
               <Text style={styles.review}>Company: {company || '—'}</Text>
               <Text style={styles.review}>Expert: {isExpert ? 'Yes' : 'No'}</Text>
-              <TouchableOpacity style={[styles.addBtn, { marginTop: 16, backgroundColor: '#111' }]} onPress={finish}>
+              <TouchableOpacity style={[styles.finishbutton, { marginTop: 16, backgroundColor: '#111' }]} onPress={finish}>
                 <Text style={[styles.addBtnText, { color: '#fff' }]}>Finish onboarding</Text>
               </TouchableOpacity>
               <Text style={styles.hintSmall}>You can always edit these later.</Text>
             </View>
+            </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
           ),
         },
       ]}
@@ -345,6 +437,7 @@ const addChips = (type: 'skill' | 'interest') => {
       imageContainerStyles={{ paddingBottom: 0 }}
       titleStyles={{ fontFamily: 'InriaSansBold' }}
       subTitleStyles={{ fontFamily: 'InriaSansRegular' }}
+      
     />
   );
 };
@@ -353,7 +446,7 @@ export default OnboardingSwiper;
 
 // ---------- styles ----------------------------------------------------------
 const styles = StyleSheet.create({
-  centerCol: { flex: 1, alignItems: 'center', width: 320, marginTop: 80, gap: 10 },
+  centerCol: {  flex:1, width: 320,gap: 10, marginTop: 100 },
   qTitle: { fontSize: 24, fontFamily: 'InriaSansBold', textAlign: 'center' },
   qTitleSmall: { fontSize: 16, fontFamily: 'InriaSansBold' },
   input: {
@@ -367,20 +460,56 @@ const styles = StyleSheet.create({
     elevation: 2,
     shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
   },
-  radioGroup: { flexDirection: 'row', gap: 20, marginTop: 10 },
+  radioGroup: { flexDirection: 'row', gap: 20, marginTop: 10,alignSelf:'center',height:20 },
   radio: { fontSize: 18, color: '#555', fontFamily: 'InriaSansRegular' },
   radioSelected: { fontSize: 18, color: '#007BFF', fontWeight: 'bold', fontFamily: 'InriaSansRegular' },
-  picker: { width: '100%', backgroundColor: '#fff', borderRadius: 8 },
-  dateBtn: { fontSize: 20, color: '#007BFF', fontFamily: 'InriaSansRegular', marginTop: 10, marginBottom: 10 },
-  hint: { fontSize: 12, color: '#666', fontFamily: 'InriaSansRegular', marginTop: 4, textAlign: 'center' },
-  hintSmall: { fontSize: 11, color: '#888', fontFamily: 'InriaSansRegular', marginTop: 8 },
+  picker: { width: '100%', backgroundColor: '#ffffff9a', borderRadius: 8 },
+  dateBtn: { fontSize: 20, color: '#007BFF', fontFamily: 'InriaSansRegular', marginTop: 10, marginBottom: 10, textAlign:'center' },
+  hint: { fontSize: 12, color: '#666', fontWeight:'bold', marginTop: 4, textAlign: 'center' },
+  hintSmall: { fontSize: 11, color: '#888', fontFamily: 'InriaSansRegular', marginTop: 8,alignSelf:'center' },
   pillsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, width: '100%', justifyContent: 'center' },
   pill: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: '#ddd', backgroundColor: '#fff' },
   pillText: { fontFamily: 'InriaSansRegular' },
-  addBtn: { backgroundColor: '#f1f1f1', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8, elevation: 2 },
-  addBtnText: { fontFamily: 'InriaSansBold', color: '#111' },
+  addBtn: { backgroundColor: '#7a6bffff',
+  paddingVertical: 10,
+  paddingHorizontal: 14,
+  borderRadius: 8,
+  elevation: 2,
+  height: 40,
+  width: 100,
+  justifyContent: 'center',
+  alignItems: 'center',
+  alignSelf: 'center', 
+  
+  },
+    finishbutton: { backgroundColor: '#7a6bffff',
+  paddingVertical: 10,
+  paddingHorizontal: 14,
+  borderRadius: 8,
+  elevation: 2,
+  height: 40,
+  width: 150,
+  justifyContent: 'center',
+  alignItems: 'center',
+  alignSelf: 'center', 
+  
+  },
+    addBtn2: { backgroundColor: '#ff3737ff',
+  paddingVertical: 10,
+  paddingHorizontal: 14,
+  borderRadius: 8,
+  elevation: 2,
+  height: 40,
+  width: 100,
+  justifyContent: 'center',
+  alignItems: 'center',
+  alignSelf: 'center', 
+  
+  },
+  addBtnText: {fontWeight:'bold', color: '#ffffffff' },
   avatar: { width: 100, height: 100, borderRadius: 50, marginVertical: 10 },
   review: { fontSize: 14, fontFamily: 'InriaSansRegular', marginTop: 4 },
+  lottieani:{height:100,width:300, marginBottom:20}
 });
 function setError(message: string) {
   throw new Error('Function not implemented.');

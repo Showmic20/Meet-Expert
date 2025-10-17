@@ -451,6 +451,7 @@ useEffect(() => {
 
 
       {/* Create Event Modal */}
+      
       <Portal>
         <Modal
           visible={createOpen}

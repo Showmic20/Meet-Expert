@@ -4,13 +4,13 @@
     "slug": "meet-expert",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/meetexpertlogo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "meetexpert",
     "runtimeVersion": { "policy": "appVersion" },
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/images/meetexpertlogo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,7 +21,7 @@
     "android": {
       "package": "com.yourname.meetexpert",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/meetexpertlogo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

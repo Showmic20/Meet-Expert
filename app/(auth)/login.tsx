@@ -5,12 +5,14 @@ import { TextInput, Button, Paragraph } from "react-native-paper"; // Import Pap
 import { supabase } from "../lib/superbase"; // Import Supabase client
 import { router } from "expo-router";
 import { KeyboardAvoidingView, Platform } from "react-native";
-import { StyleSheet } from "react-native";
+import { StyleSheet, Image } from "react-native";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const logo = require("assets/images/meetexpertlogo.png");
 
 // handleLogin
 const handleLogin = async () => {
@@ -45,9 +47,12 @@ const handleLogin = async () => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"} // Adjust behavior based on platform
-    >
+    > 
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 16 }}>
+          <Image source={logo}  style={styles.imagestyel}>
+              
+          </Image>
           <TextInput
             label="Email"
             value={email}
@@ -118,6 +123,11 @@ const styles = StyleSheet.create({
     color: "#1E90FF",
     marginTop: 20,
   },
+  imagestyel :{
+    height: 100,
+    width: 100,
+    marginBottom: 100
+  }
 });
 
 
