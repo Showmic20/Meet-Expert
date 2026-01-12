@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from 'expo-router'; // 🟢 1. Import Focus Effect
 import { View, ScrollView, Image, StyleSheet, StatusBar, RefreshControl, TouchableOpacity, Alert } from "react-native";
 import {
   Text,
   Avatar,
   IconButton,
-  Card,
   Button,
   ActivityIndicator,
   Chip,
@@ -13,17 +13,15 @@ import {
   RadioButton,
   Divider,
   Snackbar,
-  Icon, // We use Paper's Icon for consistent styling
+  Icon, 
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-// ⬇️ Keep your paths same
 import { useAuth } from "../../lib/AuthProvid";
 import { supabase } from "../../lib/superbase";
 
 // ─── TYPES ───────────────────────────────────────
-// Extended User Type to handle new UI fields (even if DB isn't updated yet)
 export type DBUser = {
   id: string;
   first_name: string;
@@ -35,18 +33,16 @@ export type DBUser = {
   is_expert: boolean;
   expert_since: string | null;
   updated_at?: string | null;
-  // New fields for UI (marked optional ?)
   is_verified?: boolean; 
   rating?: number;
   rank?: string;
-  chat_subscription_bdt?: number; // reusing your existing column
+  chat_subscription_bdt?: number; 
   location?: string;
   [key: string]: any;
 };
 
 type Plan = "15" | "30" | "60";
 
-// Mock Data for Education (Placeholders until you create the table)
 const MOCK_EDUCATION = [
   {
     id: 1,
@@ -80,9 +76,10 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [cacheBust, setCacheBust] = useState(0);
   
-  const showToast = (text: string) => setSnack({visible:true, text});
+  // 🟢 2. New State for Verification Status
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
 
-  // Chat modal state
+  const showToast = (text: string) => setSnack({visible:true, text});
   const [chatOpen, setChatOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>("30");
 
@@ -96,16 +93,16 @@ export default function ProfileScreen() {
   const bio = user?.bio || "No bio added yet.";
   const company = user?.company_name || "";
   
-  // UI Defaults (Fallback to these if DB columns don't exist yet)
   const rating = user?.rating ?? 4.6; 
   const rank = user?.rank ?? "Gold";
   const chatSub = user?.chat_subscription_bdt ?? 5; 
-  const isVerified = user?.is_verified ?? false; 
   const location = user?.location || "Dhaka, Bangladesh";
+
+  // 🟢 3. Determine if Verified based on DB or Request Status
+  const isVerifiedBoolean = user?.is_verified || verificationStatus === 'approved';
 
   const formatBDT = (n: number | null) => (n == null ? "—" : `$${n} / HOUR`);
 
-  // derived pack prices
   const packPrices = useMemo(() => {
     const perHour = chatSub ?? 50;
     return {
@@ -115,7 +112,6 @@ export default function ProfileScreen() {
     };
   }, [chatSub]);
 
-  // Avatar URL
   const avatarSrc = useMemo(() => {
     const base = user?.profile_picture_url || "https://via.placeholder.com/150";
     const ver = user?.updated_at ?? cacheBust;
@@ -142,22 +138,45 @@ export default function ProfileScreen() {
     setSkills(names);
   }, [userId]);
 
+  // 🟢 4. Fetch Verification Status specifically
+  const fetchVerificationStatus = useCallback(async () => {
+    if (!userId) return;
+    try {
+        const { data } = await supabase
+            .from('verification_requests')
+            .select('status')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+        
+        if (data) {
+            setVerificationStatus(data.status);
+        }
+    } catch (e) {
+        // console.log(e); // Silent fail is okay here
+    }
+  }, [userId]);
+
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
-      await Promise.all([fetchUser(), fetchSkills()]);
+      await Promise.all([fetchUser(), fetchSkills(), fetchVerificationStatus()]);
     } catch (e) {
       console.warn("Profile fetch error", e);
     } finally {
       setLoading(false);
     }
-  }, [fetchUser, fetchSkills]);
+  }, [fetchUser, fetchSkills, fetchVerificationStatus]);
 
-  useEffect(() => {
-    if (!authLoading && userId) {
-      fetchAll();
-    }
-  }, [authLoading, userId, fetchAll]);
+  // 🟢 5. Use Focus Effect (Re-fetch when screen is focused)
+  useFocusEffect(
+    useCallback(() => {
+      if (!authLoading && userId) {
+        fetchAll();
+      }
+    }, [authLoading, userId, fetchAll])
+  );
 
   // Realtime Listeners
   useEffect(() => {
@@ -170,16 +189,10 @@ export default function ProfileScreen() {
       })
       .subscribe();
 
-    const skillsChannel = supabase
-      .channel(`user-skills-${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_skills", filter: `user_id=eq.${userId}` }, () => fetchSkills())
-      .subscribe();
-
     return () => {
       supabase.removeChannel(usersChannel);
-      supabase.removeChannel(skillsChannel);
     };
-  }, [userId, fetchSkills]);
+  }, [userId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -209,6 +222,35 @@ export default function ProfileScreen() {
     }
   }, [userId, selfUserId, viewingSelf, selectedPlan]);
 
+  // 🟢 6. Helper for Verification Badge Rendering
+  const renderVerificationBadge = () => {
+    // A. Approved / Verified
+    if (isVerifiedBoolean) {
+        return (
+            <>
+                <Text style={styles.verifiedText}>verified</Text>
+                <Icon source="check-decagram" size={16} color="#2196F3" />
+            </>
+        );
+    }
+    // B. Pending
+    if (verificationStatus === 'pending') {
+        return (
+            <>
+                <Text style={[styles.verifiedText, { color: 'orange' }]}>Pending Review</Text>
+                <Icon source="clock-outline" size={16} color="orange" />
+            </>
+        );
+    }
+    // C. Default (Not Verified)
+    return (
+        <>
+            <Text style={styles.unverifiedText}>Apply for verification</Text>
+            <Icon source="shield-outline" size={16} color="gray" />
+        </>
+    );
+  };
+
   // ─── UI RENDER ──────────────────────────────────
   return (
     <>
@@ -227,10 +269,8 @@ export default function ProfileScreen() {
         >
           {/* 1. HEADER SECTION */}
           <View style={styles.headerContainer}>
-            {/* Cover Photo */}
             <Image source={{ uri: "https://picsum.photos/1200/400" }} style={styles.coverPhoto} />
             
-            {/* Avatar & Edit */}
             <View style={styles.avatarWrapper}>
               <Avatar.Image 
                 size={110} 
@@ -247,32 +287,26 @@ export default function ProfileScreen() {
               )}
             </View>
 
-            {/* Basic Info */}
             <View style={styles.basicInfoContainer}>
                 <Text style={styles.nameText}>{fullName}</Text>
                 
-                {/* Verification Row - Logic for Gray/Blue badge */}
+                {/* 🟢 7. Updated Verification Row */}
                 <TouchableOpacity 
-    style={styles.verificationRow} 
-    onPress={() => {
-        if (!isVerified && viewingSelf) {
-            // ভেরিফিকেশন পেজে নেভিগেট করবে
-            router.push("/verificationExpert");
-        }
-    }}
->
-    {isVerified ? (
-        <>
-            <Text style={styles.verifiedText}>verified</Text>
-            <Icon source="check-decagram" size={16} color="#2196F3" />
-        </>
-    ) : (
-        <>
-            <Text style={styles.unverifiedText}>Apply for verification</Text>
-            <Icon source="shield-outline" size={16} color="gray" />
-        </>
-    )}
-</TouchableOpacity>
+                    style={styles.verificationRow} 
+                    activeOpacity={0.7}
+                    onPress={() => {
+                        // Only allow navigation if NOT verified and Self
+                        if (!isVerifiedBoolean && viewingSelf) {
+                            if (verificationStatus === 'pending') {
+                                Alert.alert("Under Review", "Your documents are currently being reviewed by the admin.");
+                            } else {
+                                router.push("/verificationExpert");
+                            }
+                        }
+                    }}
+                >
+                    {renderVerificationBadge()}
+                </TouchableOpacity>
 
                 <Text style={styles.occupationText}>{profession} {company ? `at ${company}` : ""}</Text>
                 
@@ -281,7 +315,6 @@ export default function ProfileScreen() {
                     <Text style={styles.locationText}>{location}</Text>
                 </View>
 
-                {/* Follow Button: Hidden if viewing self */}
                 {!viewingSelf && (
                     <Button 
                         mode="contained" 
@@ -297,9 +330,8 @@ export default function ProfileScreen() {
 
           <Divider style={{ height: 1, backgroundColor: '#f0f0f0', marginVertical: 10 }} />
 
-          {/* 2. STATS ROW (Rating / Rank / Chat) */}
+          {/* 2. STATS ROW */}
           <View style={styles.statsContainer}>
-            {/* Rating */}
             <View style={styles.statCard}>
                 <View style={styles.statHeader}><Text style={styles.statTitle}>Rating</Text></View>
                 <Text style={styles.statValue}>{rating?.toFixed(1)}</Text>
@@ -309,14 +341,12 @@ export default function ProfileScreen() {
                 </View>
             </View>
 
-            {/* Rank */}
             <View style={styles.statCard}>
                 <View style={styles.statHeader}><Text style={styles.statTitle}>Rank</Text></View>
                 <Icon source="trophy" size={24} color="#FFD700" />
                 <Text style={styles.statValueLabel}>{rank}</Text>
             </View>
 
-            {/* Chat - Pressable if not self */}
             <TouchableOpacity 
                 style={styles.statCard} 
                 onPress={!viewingSelf ? () => setChatOpen(true) : undefined}
@@ -343,13 +373,11 @@ export default function ProfileScreen() {
              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Education</Text>
                 <View style={styles.headerIcons}>
-                    {/* Add/Edit Icons only for Self */}
                     {viewingSelf && <IconButton icon="plus" size={20} onPress={() => Alert.alert("Add Education")} />}
                     {viewingSelf && <IconButton icon="pencil-outline" size={20} onPress={() => Alert.alert("Edit Education")} />}
                 </View>
              </View>
              
-             {/* Map through Mock Data (Replace with DB data later) */}
              {MOCK_EDUCATION.map((edu, index) => (
                  <View key={edu.id}>
                     <View style={styles.listItem}>
@@ -423,7 +451,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
 
-  // Header
   headerContainer: { alignItems: 'center', marginBottom: 10 },
   coverPhoto: { width: "100%", height: 140, backgroundColor: '#ddd' },
   avatarWrapper: { marginTop: -55, elevation: 5, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5, borderRadius: 60, position: 'relative' },
@@ -433,7 +460,7 @@ const styles = StyleSheet.create({
   basicInfoContainer: { alignItems: 'center', marginTop: 10, paddingHorizontal: 20 },
   nameText: { fontSize: 22, fontWeight: 'bold', color: '#000' },
   
-  verificationRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4, gap: 4 },
+  verificationRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4, gap: 4, padding: 4 },
   verifiedText: { color: 'gray', fontSize: 12 },
   unverifiedText: { color: 'gray', fontSize: 12 },
   
@@ -443,7 +470,6 @@ const styles = StyleSheet.create({
   
   followButton: { marginTop: 12, borderRadius: 20, paddingHorizontal: 30, height: 40 },
 
-  // Stats
   statsContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 10, marginBottom: 10 },
   statCard: {
     width: '31%',
@@ -458,7 +484,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
-    paddingTop: 30, // space for header
+    paddingTop: 30, 
     position: 'relative',
     overflow: 'hidden'
   },
@@ -468,7 +494,6 @@ const styles = StyleSheet.create({
   statValueLabel: { fontSize: 14, fontWeight: 'bold', marginTop: 4, color: '#000' },
   ratingStars: { flexDirection: 'row', marginTop: 4 },
 
-  // Sections
   contentSection: { paddingHorizontal: 16, marginTop: 15 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },

@@ -8,20 +8,33 @@ import {
   Image, 
   Alert, 
   SafeAreaView,
-  Platform 
+  Platform,
+  ActivityIndicator 
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { supabase } from "../app/lib/superbase"; 
+
+// ⚠️ আপনার প্রজেক্টের supabase ক্লায়েন্ট ইমপোর্ট করুন
+// যদি আপনার ফাইলটি অন্য ফোল্ডারে থাকে তবে পাথ ঠিক করে নিন
 
 export default function VerificationScreen() {
-  // State to store image URIs
+  const router = useRouter();
+  
+  // লোডিং স্টেট (আপলোডের সময় চাকা ঘোরার জন্য)
+  const [loading, setLoading] = useState(false);
+
+  // ইমেজের স্টেট
   const [idImage, setIdImage] = useState<string | null>(null);
   const [docImage, setDocImage] = useState<string | null>(null);
   const [faceImage, setFaceImage] = useState<string | null>(null);
 
-  // Function to pick image
+  // ১. ইমেজ সিলেক্ট করার ফাংশন
   const pickImage = async (setImage: (uri: string) => void, useCamera: boolean = false) => {
-    // Permission request
+    // পারমিশন চেক
     const permissionResult = useCamera 
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -34,8 +47,8 @@ export default function VerificationScreen() {
     const result = useCamera 
       ? await ImagePicker.launchCameraAsync({
           allowsEditing: true,
-          aspect: [1, 1], // Square aspect for face
-          quality: 0.5,
+          aspect: [1, 1],
+          quality: 0.5, // ইমেজ সাইজ কমানোর জন্য কোয়ালিটি ০.৫ রাখা ভালো
         })
       : await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -48,17 +61,100 @@ export default function VerificationScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  // ২. সুপাবেসে ইমেজ আপলোড করার হেল্পার ফাংশন
+// ২. সুপাবেসে ইমেজ আপলোড করার হেল্পার ফাংশন
+  // ২. (নতুন পদ্ধতি) সুপাবেসে ইমেজ আপলোড করার হেল্পার ফাংশন
+  const uploadImageToSupabase = async (uri: string, folderName: string) => {
+    try {
+      // ইমেজের এক্সটেনশন বের করা
+      const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${folderName}/${fileName}`;
+
+      // 🟢 পরিবর্তন: FileSystem এর বদলে fetch ব্যবহার করা হচ্ছে
+      // এটি সরাসরি ইমেজটিকে বাইনারি ফরম্যাটে নিয়ে আসে
+      const response = await fetch(uri);
+      const blob = await response.arrayBuffer();
+
+      // সুপাবেস স্টোরেজে আপলোড
+      const { data, error } = await supabase.storage
+        .from('verification-docs')
+        .upload(filePath, blob, {
+          contentType: `image/${fileExt}`,
+        });
+
+      if (error) throw error;
+
+      // পাবলিক URL বের করা
+      const { data: urlData } = supabase.storage
+        .from('verification-docs')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+
+    } catch (error) {
+      console.error("Upload Error:", error);
+      throw error;
+    }
+  };
+  // ৩. ফাইনাল সাবমিট ফাংশন
+  const handleSubmit = async () => {
+    // ভ্যালিডেশন
     if (!idImage || !faceImage) {
-      Alert.alert("Error", "Please upload ID and complete Face Verification.");
+      Alert.alert("Incomplete", "Please upload ID and complete Face Verification.");
       return;
     }
-    // Here you will call your backend API
-    console.log("Submitting:", { idImage, docImage, faceImage });
-    Alert.alert("Success", "Documents submitted for verification!");
+
+    setLoading(true);
+
+    try {
+      // ক. বর্তমানে লগইন করা ইউজারকে খোঁজা
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        Alert.alert("Error", "User not found. Please log in again.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Starting upload for user:", user.id);
+
+      // খ. ছবিগুলো আপলোড করা (Promise.all দিয়ে একসাথে করা যায়, তবে ধাপে ধাপে সহজ)
+      const nidUrl = await uploadImageToSupabase(idImage, 'nids');
+      const faceUrl = await uploadImageToSupabase(faceImage, 'faces');
+      
+      let docUrl = null;
+      if (docImage) {
+        docUrl = await uploadImageToSupabase(docImage, 'documents');
+      }
+
+      // গ. ডেটাবেসে রেকর্ড জমা দেওয়া
+      const { error: dbError } = await supabase
+        .from('verification_requests') // ⚠️ নিশ্চিত করুন এই নামে Table আছে
+        .insert({
+          user_id: user.id,
+          nid_image_path: nidUrl,
+          live_image_path: faceUrl,
+          doc_image_path: docUrl,
+          status: 'pending' // ডিফল্ট স্ট্যাটাস
+        });
+
+      if (dbError) throw dbError;
+
+      // সফল হলে
+      Alert.alert("Success", "Verification request submitted successfully!", [
+        { text: "OK", onPress: () => router.back() }
+      ]);
+
+    } catch (error: any) {
+      console.error(error);
+      Alert.alert("Upload Failed", error.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Reusable Component for Upload Box
+  // UI Components (আপনার আগের কোডই)
   const UploadBox = ({ title, subtitle, imageUri, onPress }: any) => (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -82,9 +178,8 @@ export default function VerificationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => console.log('Back')}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Upload Document for Verification</Text>
@@ -120,20 +215,26 @@ export default function VerificationScreen() {
                  {faceImage ? (
                    <Image source={{ uri: faceImage }} style={styles.faceImage} />
                  ) : (
-                   // Placeholder Illustration (Simulated with Icon)
                    <MaterialIcons name="face" size={80} color="#FFB6C1" />
                  )}
               </View>
             </TouchableOpacity>
             
-            {/* Dashed ring effect around the face */}
             <View style={styles.dashedRing} pointerEvents="none" />
           </View>
         </View>
 
-        {/* Submit Button */}
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Submit</Text>
+        {/* Submit Button with Loading Indicator */}
+        <TouchableOpacity 
+          style={[styles.submitButton, loading && { opacity: 0.7 }]} 
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+             <ActivityIndicator size="small" color="#fff" />
+          ) : (
+             <Text style={styles.submitButtonText}>Submit</Text>
+          )}
         </TouchableOpacity>
 
       </ScrollView>
@@ -142,6 +243,8 @@ export default function VerificationScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ... আপনার আগের স্টাইলগুলো এখানে হুবহু একই থাকবে
+  // আমি শুধু জায়গার স্বার্থে রিপিট করলাম না, আপনি আপনার আগের styles ব্লকটি এখানে রেখে দেবেন
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -218,8 +321,6 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-  
-  // Face Verification Styles
   faceVerificationContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -254,8 +355,6 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     zIndex: 1,
   },
-  
-  // Button
   submitButton: {
     backgroundColor: '#2495ff',
     paddingVertical: 16,
