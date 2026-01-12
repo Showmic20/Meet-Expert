@@ -12,6 +12,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const logo = require("assets/images/meetexpertlogo.png");
 
   const handleSignup = async () => {
     const { data, error } = await supabase.auth.signUp({

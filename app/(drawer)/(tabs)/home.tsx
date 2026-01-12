@@ -1,26 +1,22 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, StyleSheet, FlatList, RefreshControl, Text,TouchableOpacity, Alert } from "react-native";
 import {
   Card,
-  Text,
   Avatar,
   ActivityIndicator,
   Searchbar,
-  SegmentedButtons,
-  IconButton,
   Button,
   TextInput,
   Portal,
   Modal,
-  HelperText,
-  Appbar
+  FAB, 
 } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
-import { supabase } from "../../lib/superbase"; // ⬅️ your Supabase client path
+import { supabase } from "../../lib/superbase"; 
 import { router } from "expo-router";
 
 // ───────────────────────────────────────────────────────────────────────────────
-// Types matching your schema
+// Types
 // ───────────────────────────────────────────────────────────────────────────────
 export type UserListItem = {
   id: string;
@@ -30,15 +26,6 @@ export type UserListItem = {
   occupation: string | null;
   is_expert: boolean;
 };
-type MyProfile = {
-  id: string;
-  profile_picture_url: string | null;
-  is_expert: boolean;
-  first_name: string;
-  last_name: string;
-};
-
-
 
 export type EventItem = {
   id: string;
@@ -50,468 +37,359 @@ export type EventItem = {
   end_at: string | null; // ISO
   cover_url: string | null;
   created_at: string;
-  updated_at?: string;
 };
 
 const PAGE_SIZE = 20;
 
 export default function HomeScreen() {
   const navigation = useNavigation();
-const [me, setMe] = useState<MyProfile | null>(null);
+
   // ── users state
   const [items, setItems] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [page, setPage] = useState<number>(0);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-
+  
   // ── events state
   const [events, setEvents] = useState<EventItem[]>([]);
   const [eventsLoading, setEventsLoading] = useState<boolean>(false);
   const [eventsPage, setEventsPage] = useState<number>(0);
   const [eventsHasMore, setEventsHasMore] = useState<boolean>(true);
 
-  // ── search + filter
+  // ── general state
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
-  const [filter, setFilter] = useState<"experts" | "all" | "events">("experts");
-  const whereExpert = filter === "experts";
-
-  // ── scroll ref (optional for scroll-to-top)
-  const listRef = useRef<FlatList<any>>(null);
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Fetch: Users
+  // Fetch Functions
   // ────────────────────────────────────────────────────────────────────────────
-  const fetchUsersPage = useCallback(
-    async (pageIndex: number, replace = false) => {
-      try {
-        if (loading) return;
-        setLoading(true);
+  const fetchExperts = useCallback(async () => {
+    try {
+      setLoading(true);
+      let q = supabase
+        .from("users")
+        .select("id, first_name, last_name, profile_picture_url, occupation, is_expert")
+        .eq("is_expert", true) 
+        .order("created_at", { ascending: false })
+        .limit(10);
 
-        const from = pageIndex * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-
-        let q = supabase
-          .from("users")
-          .select(
-            "id, first_name, last_name, profile_picture_url, occupation, is_expert",
-            { count: "exact" }
-          )
-          .order("created_at", { ascending: false })
-          .range(from, to);
-
-        if (whereExpert) q = q.eq("is_expert", true);
-        if (query.trim().length > 0) {
-          q = q.or(
-            `first_name.ilike.%${query}%,last_name.ilike.%${query}%,occupation.ilike.%${query}%`
-          );
-        }
-
-        const { data, error } = await q;
-        if (error) throw error;
-
-        const rows = (data ?? []) as UserListItem[];
-        setHasMore(rows.length === PAGE_SIZE);
-        setPage(pageIndex);
-        setItems((prev) => (replace ? rows : [...prev, ...rows]));
-      } catch (e) {
-        console.warn("fetch users error", e);
-      } finally {
-        setLoading(false);
+      if (query.trim().length > 0) {
+        q = q.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`);
       }
-    },
-    [loading, query, whereExpert]
-  );
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Fetch: Events
-  // ────────────────────────────────────────────────────────────────────────────
-  const fetchEventsPage = useCallback(
-    async (pageIndex: number, replace = false) => {
-      try {
-        if (eventsLoading) return;
-        setEventsLoading(true);
-
-        const from = pageIndex * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-
-        let q = supabase
-          .from("events")
-          .select("*", { count: "exact" })
-          // Upcoming first (ascending by start time). Change to false for newest-first.
-          .order("start_at", { ascending: true })
-          .range(from, to);
-
-        if (query.trim().length > 0) {
-          q = q.or(`title.ilike.%${query}%,location.ilike.%${query}%`);
-        }
-
-        const { data, error } = await q;
-        if (error) throw error;
-
-        const rows = (data ?? []) as EventItem[];
-        setEventsHasMore(rows.length === PAGE_SIZE);
-        setEventsPage(pageIndex);
-        setEvents((prev) => (replace ? rows : [...prev, ...rows]));
-      } catch (e) {
-        console.warn("fetch events error", e);
-      } finally {
-        setEventsLoading(false);
-      }
-    },
-    [eventsLoading, query]
-  );
-useEffect(() => {
-  (async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("users")
-      .select("id, profile_picture_url, is_expert, first_name, last_name")
-      .eq("id", user.id)
-      .single();
-    if (!error && data) setMe(data as MyProfile);
-  })();
-}, []);
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // Refresh logic depending on active tab
-  // ────────────────────────────────────────────────────────────────────────────
-  const refresh = useCallback(async () => {
-    setRefreshing(true);
-    if (filter === "events") {
-      await fetchEventsPage(0, true);
-    } else {
-      await fetchUsersPage(0, true);
+      const { data, error } = await q;
+      if (error) throw error;
+      setItems((data ?? []) as UserListItem[]);
+    } catch (e) {
+      console.warn("fetch experts error", e);
+    } finally {
+      setLoading(false);
     }
-    setRefreshing(false);
-  }, [fetchUsersPage, fetchEventsPage, filter]);
+  }, [query]);
 
-  // Initial load (users first)
+  const fetchEventsPage = useCallback(async (pageIndex: number, replace = false) => {
+    try {
+      if (eventsLoading && !replace) return;
+      setEventsLoading(true);
+
+      const from = pageIndex * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      let q = supabase
+        .from("events")
+        .select("*", { count: "exact" })
+        .order("start_at", { ascending: true }) // Upcoming events first
+        .range(from, to);
+
+      if (query.trim().length > 0) {
+        q = q.or(`title.ilike.%${query}%,location.ilike.%${query}%`);
+      }
+
+      const { data, error } = await q;
+      if (error) throw error;
+
+      const rows = (data ?? []) as EventItem[];
+      setEventsHasMore(rows.length === PAGE_SIZE);
+      setEventsPage(pageIndex);
+      setEvents((prev) => (replace ? rows : [...prev, ...rows]));
+    } catch (e) {
+      console.warn("fetch events error", e);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [eventsLoading, query]);
+
+  // ── Initial Data Load
   useEffect(() => {
-    fetchUsersPage(0, true);
+    fetchExperts();
+    fetchEventsPage(0, true);
   }, []);
 
-  // Re-fetch on query/filter change
-  useEffect(() => {
-    if (filter === "events") {
-      fetchEventsPage(0, true);
-    } else {
-      fetchUsersPage(0, true);
-    }
-  }, [query, filter]);
+  // ── Refresh Logic
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([fetchExperts(), fetchEventsPage(0, true)]);
+    setRefreshing(false);
+  }, [fetchExperts, fetchEventsPage]);
 
-  // Infinite scroll
+  // ── Infinite Scroll for Events
   const onEndReached = useCallback(() => {
-    if (filter === "events") {
-      if (eventsLoading || !eventsHasMore) return;
-      fetchEventsPage(eventsPage + 1);
-    } else {
-      if (loading || !hasMore) return;
-      fetchUsersPage(page + 1);
-    }
-  }, [
-    filter,
-    // users deps
-    loading,
-    hasMore,
-    page,
-    fetchUsersPage,
-    // events deps
-    eventsLoading,
-    eventsHasMore,
-    eventsPage,
-    fetchEventsPage,
-  ]);
+    if (eventsLoading || !eventsHasMore) return;
+    fetchEventsPage(eventsPage + 1);
+  }, [eventsLoading, eventsHasMore, eventsPage, fetchEventsPage]);
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Renderers
+  // RENDERERS
   // ────────────────────────────────────────────────────────────────────────────
-  const renderUserItem = useCallback(
-    ({ item }: { item: UserListItem }) => {
-      const name = `${item.first_name} ${item.last_name}`.trim();
-      const avatar = item.profile_picture_url || "https://via.placeholder.com/150";
 
-      return (
-        <TouchableOpacity
-          onPress={() =>
-            router.push({ pathname: "/user/[id]", params: { id: item.id } })
-          }
-        >
-          <Card style={styles.card}>
-            <Card.Title
-              title={name}
-              subtitle={item.occupation || (item.is_expert ? "Expert" : "User")}
-              left={(props) => (
-                <Avatar.Image {...props} size={44} source={{ uri: avatar }} />
-              )}
-              right={(props) =>
-                item.is_expert ? (
-                  <Avatar.Icon {...props} size={28} icon="star" />
-                ) : null
-              }
-            />
-          </Card>
-        </TouchableOpacity>
-      );
-    },
-    [navigation]
-  );
+  // 1. Expert Item (Horizontal)
+  const renderExpertItem = useCallback(({ item }: { item: UserListItem }) => {
+    const name = `${item.first_name} ${item.last_name}`.trim();
+    const avatar = item.profile_picture_url || "https://via.placeholder.com/150";
 
-  const renderEventItem = useCallback(({ item }: { item: EventItem }) => {
-    const start = new Date(item.start_at);
-    const end = item.end_at ? new Date(item.end_at) : null;
-    const when =
-      start.toLocaleString() + (end ? ` → ${end.toLocaleString()}` : "");
     return (
-      <Card style={styles.card}>
-        <Card.Title
-          title={item.title}
-          subtitle={item.location ? `${item.location} • ${when}` : when}
-          left={(props) => <Avatar.Icon {...props} size={44} icon="calendar" />}
-        />
-        {item.description ? (
-          <Card.Content>
-            <Text>{item.description}</Text>
-          </Card.Content>
-        ) : null}
+      <TouchableOpacity
+        onPress={() => router.push({ pathname: "/user/[id]", params: { id: item.id } })}
+        style={{ marginRight: 15 }}
+      >
+        <Card style={styles.cardHorizontal}>
+          <View style={styles.cardContent}>
+            <Avatar.Image size={80} source={{ uri: avatar }} style={{ marginBottom: 10 }} />
+            <Text style={styles.expertName} numberOfLines={1}>{name}</Text>
+            <Text style={styles.expertRole} numberOfLines={1}>
+              {item.occupation || "Expert"}
+            </Text>
+          </View>
+          <View style={styles.cardFooter}>
+            <View style={styles.footerItem}>
+              <Avatar.Icon size={20} icon="star" color="orange" style={{ backgroundColor: 'transparent' }} />
+              <Text style={styles.footerText}>4.5</Text>
+            </View>
+            <View style={styles.footerItem}>
+              <Avatar.Icon size={20} icon="trophy" color="#DAA520" style={{ backgroundColor: 'transparent' }} />
+              <Text style={[styles.footerText, { color: '#555' }]}>Gold</Text>
+            </View>
+          </View>
+        </Card>
+      </TouchableOpacity>
+    );
+  }, []);
+
+  // 2. Event Item (Vertical)
+  const renderEventItem = useCallback(({ item, index }: { item: EventItem; index: number }) => {
+    const start = new Date(item.start_at);
+    const isEven = index % 2 === 0;
+    console.log("Event Title:", item.title);
+    const cardColor = isEven ? '#6A1B9A' : '#E65100'; 
+    
+    return (
+      <Card style={[styles.eventCard, { backgroundColor: cardColor }]}>
+        <View style={styles.eventCardInner}>
+          <View style={{flex: 1}}>
+             <Text style={styles.eventTitle} numberOfLines={1}>{item.title}</Text>
+             <Text style={styles.eventSubtitle}>{start.toDateString()} • {start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
+             <View style={styles.locationRow}>
+                <Avatar.Icon size={20} icon="map-marker" color="white" style={{backgroundColor:'transparent'}} />
+                <Text style={styles.eventLocation}>{item.location || "Online"}</Text>
+             </View>
+          </View>
+          
+          <Button 
+            mode="contained" 
+            onPress={() => console.log('Join Event')} 
+            buttonColor="rgba(255,255,255,0.2)"
+            compact
+            labelStyle={{ fontSize: 12 }}
+          >
+            Join
+          </Button>
+        </View>
       </Card>
     );
   }, []);
 
-  const keyExtractorUsers = useCallback((it: UserListItem) => it.id, []);
-  const keyExtractorEvents = useCallback((it: EventItem) => it.id, []);
-
   // ────────────────────────────────────────────────────────────────────────────
-  // Create Event Modal state & handlers
+  // Create Event Logic (DB Connected)
   // ────────────────────────────────────────────────────────────────────────────
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
-  const [startAt, setStartAt] = useState(""); // "2025-10-12 18:00"
-  const [endAt, setEndAt] = useState("");
+  const [startAt, setStartAt] = useState(""); // Format: YYYY-MM-DD HH:mm
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const [formTouched, setFormTouched] = useState(false);
-  const titleError = formTouched && !title.trim();
-  const startError = formTouched && !startAt.trim();
 
   const resetForm = () => {
     setTitle("");
     setLocation("");
     setStartAt("");
-    setEndAt("");
     setDescription("");
-    setFormTouched(false);
   };
 
-  const handleCreate = useCallback(async () => {
-    // Basic validation
+  const handleCreate = async () => {
+    // 1. Basic Validation
     if (!title.trim() || !startAt.trim()) {
-      setFormTouched(true);
+      Alert.alert("Required", "Please enter a Title and a Start Date.");
       return;
     }
 
+    setSubmitting(true);
     try {
-      setSubmitting(true);
+      // 2. Get Current User
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) {
+        Alert.alert("Error", "You must be logged in to create an event.");
+        return;
+      }
 
+      // 3. Prepare Payload
+      // Note: In a real app, use a DatePicker. Here we assume user types valid format.
       const payload = {
-        creator_id: user.id, // FK -> public.users(id), matches RLS check
+        creator_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
         location: location.trim() || null,
-        start_at: new Date(startAt).toISOString(),
-        end_at: endAt ? new Date(endAt).toISOString() : null,
-        cover_url: null as string | null,
+        start_at: new Date(startAt).toISOString(), // Converts text to DB Timestamp
       };
 
+      // 4. Insert into Supabase
       const { data, error } = await supabase
         .from("events")
         .insert(payload)
-        .select("*")
+        .select() // Return the created row
         .single();
 
       if (error) throw error;
 
-      // optimistic prepend
+      // 5. Success: Update List & Close Modal
+      // We prepend the new event to the list immediately (Optimistic update)
       setEvents((prev) => [data as EventItem, ...prev]);
+      
       setCreateOpen(false);
       resetForm();
-    } catch (e) {
-      console.warn("create event error", e);
+      Alert.alert("Success", "Event created successfully!");
+
+    } catch (e: any) {
+      console.error("Create event error:", e);
+      Alert.alert("Error", e.message || "Failed to create event.");
     } finally {
       setSubmitting(false);
     }
-  }, [title, location, startAt, endAt, description]);
+  };
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Header (search + segmented buttons)
+  // Page Structure
   // ────────────────────────────────────────────────────────────────────────────
-  const ListHeader = useMemo(
-    () => (
-      <View style={styles.header}>
-        <Searchbar
-          placeholder={
-            filter === "events"
-              ? "Search events (title/location)"
-              : "Search name or occupation"
-          }
-          value={query}
-          onChangeText={setQuery}
-          style={styles.search}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
-        <SegmentedButtons
-          style={{ marginHorizontal: 12, marginTop: 6 }}
-          value={filter}
-          onValueChange={(v) => setFilter(v as any)}
-          buttons={[
-            { value: "experts", label: "Experts", icon: "star" },
-            { value: "all", label: "All", icon: "account-group" },
-            { value: "events", label: "Events", icon: "calendar" },
-          ]}
-        />
+
+  const ListHeader = (
+    <View>
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Home</Text> 
       </View>
-    ),
-    [query, filter]
+
+      <Searchbar
+        placeholder="Search for an expert"
+        value={query}
+        onChangeText={setQuery}
+        style={styles.search}
+        inputStyle={{minHeight: 0}}
+      />
+
+      {/* Experts Section */}
+      <View style={styles.sectionHeader}>
+         <Text style={styles.sectionTitle}>Experts For you</Text>
+      </View>
+      
+      <FlatList
+        data={items}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.id}
+        renderItem={renderExpertItem}
+        contentContainerStyle={styles.horizontalListContent}
+      />
+
+      {/* Events Section Title */}
+      <View style={[styles.sectionHeader, { marginTop: 20 }]}>
+         <Text style={styles.sectionTitle}>Upcoming Events</Text>
+      </View>
+    </View>
   );
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // Render
-  // ────────────────────────────────────────────────────────────────────────────
-  const showingEvents = filter === "events";
-
-  const isLoading = showingEvents ? eventsLoading : loading;
 
   return (
     <View style={styles.container}>
-      {/* Users list */}
-      
-{!showingEvents && (
-  <FlatList<UserListItem>
-    ref={listRef as any}
-    data={items}
-    keyExtractor={(item) => item.id}
-    renderItem={renderUserItem}
-    contentContainerStyle={styles.listContent}
-    ListHeaderComponent={ListHeader}
-    ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-    onEndReachedThreshold={0.5}
-    onEndReached={onEndReached}
-    ListFooterComponent={
-      loading ? (
-        <View style={{ paddingVertical: 16 }}>
-          <ActivityIndicator />
-        </View>
-      ) : null
-    }
-  />
-)}
+      {/* Main Events List */}
+      <FlatList
+        data={events}
+        keyExtractor={(item) => item.id}
+        renderItem={renderEventItem}
+        ListHeaderComponent={ListHeader} 
+        contentContainerStyle={styles.mainScrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          eventsLoading ? <ActivityIndicator style={{ margin: 20 }} /> : <View style={{height: 80}} />
+        }
+      />
 
-{/* Events list */}
-{showingEvents && (
-  <FlatList<EventItem>
-    ref={listRef as any}
-    data={events}
-    keyExtractor={(item) => item.id}
-    renderItem={renderEventItem}
-    contentContainerStyle={styles.listContent}
-    ListHeaderComponent={ListHeader}
-    ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-    onEndReachedThreshold={0.5}
-    onEndReached={onEndReached}
-    ListFooterComponent={
-      eventsLoading ? (
-        <View style={{ paddingVertical: 16 }}>
-          <ActivityIndicator />
-        </View>
-      ) : null
-    }
-  />
-)}
-
-
-      {/* Bottom controls */}
-     {/* Floating “+ Event” button — only visible in Events tab */}
-{showingEvents && (
-  <IconButton
-    icon="plus"
-    mode="contained-tonal"
-    size={32}
-    onPress={() => setCreateOpen(true)}
-    style={styles.addEventButton}
-  />
-)}
-
+      {/* FAB: Add Event */}
+      <FAB
+        icon="plus"
+        style={styles.fab}
+        color="white"
+        onPress={() => setCreateOpen(true)}
+      />
 
       {/* Create Event Modal */}
-      
       <Portal>
-        <Modal
-          visible={createOpen}
-          onDismiss={() => setCreateOpen(false)}
+        <Modal 
+          visible={createOpen} 
+          onDismiss={() => setCreateOpen(false)} 
           contentContainerStyle={styles.modal}
         >
-          <Text variant="titleMedium" style={{ marginBottom: 12 }}>
-            Create Event
-          </Text>
-
-          <TextInput
-            label="Title *"
-            value={title}
-            onChangeText={setTitle}
-            style={{ marginBottom: 4 }}
+          <Text style={{ marginBottom: 15, fontWeight: 'bold' }}>Create New Event</Text>
+          
+          <TextInput 
+            label="Title *" 
+            value={title} 
+            onChangeText={setTitle} 
+            style={{ marginBottom: 10, backgroundColor: '#fff' }} 
+            mode="outlined"
           />
-          <HelperText type="error" visible={!!titleError}>
-            Title is required
-          </HelperText>
-
-          <TextInput
-            label="Location"
-            value={location}
-            onChangeText={setLocation}
-            style={{ marginBottom: 8 }}
+          
+          <TextInput 
+            label="Location" 
+            value={location} 
+            onChangeText={setLocation} 
+            style={{ marginBottom: 10, backgroundColor: '#fff' }} 
+            mode="outlined"
           />
 
-          <TextInput
-            label='Start (e.g. "2025-10-12 18:00") *'
-            value={startAt}
-            onChangeText={setStartAt}
-            style={{ marginBottom: 4 }}
-            placeholder="YYYY-MM-DD HH:mm"
-          />
-          <HelperText type="error" visible={!!startError}>
-            Start time is required
-          </HelperText>
-
-          <TextInput
-            label='End (e.g. "2025-10-12 20:00")'
-            value={endAt}
-            onChangeText={setEndAt}
-            style={{ marginBottom: 8 }}
-            placeholder="YYYY-MM-DD HH:mm"
+          <TextInput 
+            label="Start Date (YYYY-MM-DD HH:mm) *" 
+            value={startAt} 
+            onChangeText={setStartAt} 
+            placeholder="2025-10-25 14:00"
+            style={{ marginBottom: 10, backgroundColor: '#fff' }} 
+            mode="outlined"
           />
 
-          <TextInput
-            label="Description"
-            value={description}
-            onChangeText={setDescription}
+          <TextInput 
+            label="Description" 
+            value={description} 
+            onChangeText={setDescription} 
             multiline
-            style={{ marginBottom: 12 }}
+            numberOfLines={3}
+            style={{ marginBottom: 20, backgroundColor: '#fff' }} 
+            mode="outlined"
           />
 
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 8 }}>
-            <Button onPress={() => setCreateOpen(false)}>Cancel</Button>
-            <Button mode="contained" loading={submitting} onPress={handleCreate}>
-              Save
-            </Button>
-          </View>
+          <Button 
+            mode="contained" 
+            onPress={handleCreate} 
+            loading={submitting} 
+            disabled={submitting}
+          >
+            Save Event
+          </Button>
         </Modal>
       </Portal>
     </View>
@@ -520,70 +398,132 @@ useEffect(() => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  listContent: { padding: 12, paddingBottom: 24 },
-  card: { borderRadius: 16 },
-  header: { paddingTop: 8 },
-  search: { marginHorizontal: 12, borderRadius: 12 },
-
-  // Bottom controls: left "+" and right "↑"
-  addEventButton: {
-  position: "absolute",
-  right: 20,
-  bottom: 20,
-  borderRadius: 28,
-  elevation: 4,
-},
-
-  bottomBar: {
-    position: "absolute",
-    left: 6,
-    right: 6,
-    bottom: 6,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
   },
-  leftFab: { alignSelf: "flex-start" },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  search: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    elevation: 0,
+    height: 45,
+  },
 
-  // Modal styling
-  modal: {
-    margin: 16,
-    backgroundColor: "white",
+  sectionHeader: {
+    paddingHorizontal: 16,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+
+  horizontalListContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  mainScrollContent: {
+    paddingBottom: 20,
+  },
+
+  // Expert Card
+  cardHorizontal: {
+    backgroundColor: '#fff',
+    width: 160,
+    height: 210,
     borderRadius: 16,
-    padding: 16,
+    overflow: 'hidden',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  topBar: {
-  paddingTop: 6,
-  paddingHorizontal: 8,
-  flexDirection: "row",
-  alignItems: "center",
-},
+  cardContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20,
+    paddingHorizontal: 5,
+    width: '100%',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    height: 40,
+    width: '100%',
+  },
+  expertName: { fontSize: 15, fontWeight: 'bold', color: '#000', marginTop: 8, textAlign: 'center' },
+  expertRole: { fontSize: 12, color: '#666', marginTop: 2, textAlign: 'center' },
+  footerItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  footerText: { fontSize: 12, fontWeight: 'bold', color: '#444' },
 
-avatarWrap: {
-  width: 34,
-  height: 34,
-  borderRadius: 17,
-  overflow: "visible",
-},
+  // Event Card
+  eventCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 16,
+    elevation: 4,
+    height: 110, 
+  },
+  eventCardInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  eventSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 6,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  eventLocation: {
+    color: '#ffffff',
+    fontSize: 12,
+    marginLeft: 4,
+  },
 
-expertBadge: {
-  position: "absolute",
-  right: -4,
-  bottom: -4,
-  borderRadius: 10,
-  // subtle shadow for visibility
-  shadowColor: "#000",
-  shadowOpacity: 0.2,
-  shadowRadius: 2,
-  elevation: 2,
-},
-
-badgeExpert: {
-  // Paper Avatar.Icon will carry the star; wrapper can stay transparent
-},
-
-badgeNonExpert: {
-  opacity: 0.75, // slightly dim for non-expert
-},
-
+  // FAB
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#4A90E2', 
+    borderRadius: 50, 
+  },
+  
+  // Modal
+  modal: {
+    margin: 20,
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+  }
 });

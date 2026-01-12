@@ -17,15 +17,19 @@ const Login = () => {
 // handleLogin
 const handleLogin = async () => {
   console.log("Login button clicked");
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-     Alert.alert("Check your Connectin!!!");
-    console.error(error);
+  if (!email || !password) {
+    Alert.alert("Missing Fields", "Please enter both email and password.");
     return;
   }
-
-  // Ensure user row exists
-  if (data.user) {
+  try{
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+   if (error) throw error;
+   //{
+  //    Alert.alert("Check your Connectin!!!");
+  //  // console.error(error);
+  //   return;
+  // }
+    if (data.user) {
     await supabase.from("users").upsert({
       id: data.user.id,
       first_name: "Unknown",
@@ -39,6 +43,40 @@ const handleLogin = async () => {
     // Redirect to onboarding
     router.replace("/(auth)/onboarding");
   }
+  } catch (error:any){
+  console.log("Login Error:", error.message);
+
+    // Case 1: Wrong Email or Password
+    if (error.message.includes("Invalid login credentials")) {
+      Alert.alert(
+        "Login Failed", 
+        "The email or password you entered is incorrect. Please try again."
+      );
+    } 
+    // Case 2: Network / Internet Issues
+    else if (
+      error.message.includes("Network request failed") || 
+      error.message.includes("connection")
+    ) {
+      Alert.alert(
+        "Connection Error", 
+        "Could not connect to the server. Please check your internet connection."
+      );
+    } 
+    // Case 3: Email not confirmed (Supabase specific)
+    else if (error.message.includes("Email not confirmed")) {
+      Alert.alert(
+        "Verification Needed", 
+        "Please check your email and verify your account before logging in."
+      );
+    }
+    // Case 4: Any other unknown error
+    else {
+      Alert.alert("Error", error.message || "Something went wrong. Please try again.");
+    }
+  } 
+  // Ensure user row exists
+
 };
 
 
@@ -50,9 +88,9 @@ const handleLogin = async () => {
     > 
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 16 }}>
-          <Image source={logo}  style={styles.imagestyel}>
+          <Image source={logo}  style={styles.imagestyel}/>
               
-          </Image>
+
           <TextInput
             label="Email"
             value={email}

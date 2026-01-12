@@ -196,7 +196,7 @@ const addChips = (type: 'skill' | 'interest') => {
           subtitle: (
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
               <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-            <View style={{flex:1, width: 320,gap: 10, marginTop: 10}}>
+            <View style={{flex:1, width: 320,gap: 10,}}>
               <Text style={styles.qTitle}>Your occupation</Text>
               <TextInput style={styles.input} placeholder=" Product Designer, Doctor, Engineer" value={occupation} onChangeText={setOccupation} />
               
@@ -269,7 +269,7 @@ const addChips = (type: 'skill' | 'interest') => {
           subtitle: (
               <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
               <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-            <View style={styles.centerCol}>
+            <View style={{flex:1, width: 320,gap: 10, marginTop: 5 }}>
               <Text style={styles.qTitle}>Add skills </Text>
                <Text style={{fontSize:14, textAlign:'center'}}>(comma separated) </Text>
               <TextInput
@@ -302,7 +302,7 @@ const addChips = (type: 'skill' | 'interest') => {
           subtitle: (
               <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
               <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-            <View style={styles.centerCol}>
+            <View style={{flex:1, width: 320,gap: 10, marginTop: 5 }}>
               <Text style={styles.qTitle}>Interested fields </Text>
               <Text style={{fontSize:14, textAlign:'center'}}>(comma separated) </Text>
               <TextInput
@@ -370,7 +370,7 @@ const addChips = (type: 'skill' | 'interest') => {
             subtitle: (
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
               <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-            <View style={{ flex:1, width: 320,gap: 10, marginTop: 30}}>
+            <View style={{ flex:1, width: 320,gap: 10, marginTop: 30, alignItems:'center' }}>
               {imageUri ? <Image source={{ uri: imageUri }} style={styles.avatar} /> : null}
               <TouchableOpacity onPress={pickImage}><Text style={styles.dateBtn}>Choose image</Text></TouchableOpacity>
               <Text style={styles.hint}>Tap to pick from gallery</Text>
@@ -446,7 +446,7 @@ export default OnboardingSwiper;
 
 // ---------- styles ----------------------------------------------------------
 const styles = StyleSheet.create({
-  centerCol: {  flex:1, width: 320,gap: 10, marginTop: 100 },
+  centerCol: {  flex:1, width: 320,gap: 10, marginTop: 50 },
   qTitle: { fontSize: 24, fontFamily: 'InriaSansBold', textAlign: 'center' },
   qTitleSmall: { fontSize: 16, fontFamily: 'InriaSansBold' },
   input: {
