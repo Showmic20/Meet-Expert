@@ -466,6 +466,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     height: 40,
     width: '100%',
+    marginTop: 20,
   },
   expertName: { fontSize: 15, fontWeight: 'bold', color: '#000', marginTop: 8, textAlign: 'center' },
   expertRole: { fontSize: 12, color: '#666', marginTop: 2, textAlign: 'center' },

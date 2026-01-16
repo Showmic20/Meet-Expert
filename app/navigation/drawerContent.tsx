@@ -78,12 +78,22 @@ export default function CustomDrawerContent(props: any) {
 
         {/* 🔴 ৩) অ্যাডমিন প্যানেল বাটন (NEW) */}
         {/* আপনি চাইলে {isAdmin && ...} দিয়ে এটি সাধারণ ইউজারদের থেকে লুকাতে পারেন */}
+        {/* আগের Admin Panel (Verification) */}
         <DrawerItem
-          label="Admin Panel"
+          label="Verification Requests"
           icon={({ color, size }) => (
-            <Ionicons name="shield-checkmark-outline" size={size} color="red" />
+            <Ionicons name="shield-checkmark-outline" size={size} color="blue" />
           )}
           onPress={() => router.push("/admin-requests")} 
+        />
+
+        {/* 🔴 নতুন Complaints Panel */}
+        <DrawerItem
+          label="Complaints & Reports"
+          icon={({ color, size }) => (
+            <Ionicons name="alert-circle-outline" size={size} color="red" />
+          )}
+          onPress={() => router.push("/admin-complain")} 
         />
         <Divider />
 
