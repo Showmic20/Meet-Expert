@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useFocusEffect } from 'expo-router'; // 🟢 1. Import Focus Effect
+import { useFocusEffect } from 'expo-router';
 import { View, ScrollView, Image, StyleSheet, StatusBar, RefreshControl, TouchableOpacity, Alert } from "react-native";
 import {
   Text,
@@ -35,6 +35,7 @@ export type DBUser = {
   updated_at?: string | null;
   is_verified?: boolean; 
   rating?: number;
+  total_reviews?: number; // Added for type safety
   rank?: string;
   chat_subscription_bdt?: number; 
   location?: string;
@@ -76,7 +77,6 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [cacheBust, setCacheBust] = useState(0);
   
-  // 🟢 2. New State for Verification Status
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
 
   const showToast = (text: string) => setSnack({visible:true, text});
@@ -93,12 +93,10 @@ export default function ProfileScreen() {
   const bio = user?.bio || "No bio added yet.";
   const company = user?.company_name || "";
   
-  const rating = user?.rating ?? 4.6; 
   const rank = user?.rank ?? "Gold";
   const chatSub = user?.chat_subscription_bdt ?? 5; 
   const location = user?.location || "Dhaka, Bangladesh";
 
-  // 🟢 3. Determine if Verified based on DB or Request Status
   const isVerifiedBoolean = user?.is_verified || verificationStatus === 'approved';
 
   const formatBDT = (n: number | null) => (n == null ? "—" : `$${n} / HOUR`);
@@ -138,7 +136,6 @@ export default function ProfileScreen() {
     setSkills(names);
   }, [userId]);
 
-  // 🟢 4. Fetch Verification Status specifically
   const fetchVerificationStatus = useCallback(async () => {
     if (!userId) return;
     try {
@@ -154,7 +151,7 @@ export default function ProfileScreen() {
             setVerificationStatus(data.status);
         }
     } catch (e) {
-        // console.log(e); // Silent fail is okay here
+        // console.log(e); 
     }
   }, [userId]);
 
@@ -169,7 +166,6 @@ export default function ProfileScreen() {
     }
   }, [fetchUser, fetchSkills, fetchVerificationStatus]);
 
-  // 🟢 5. Use Focus Effect (Re-fetch when screen is focused)
   useFocusEffect(
     useCallback(() => {
       if (!authLoading && userId) {
@@ -178,7 +174,6 @@ export default function ProfileScreen() {
     }, [authLoading, userId, fetchAll])
   );
 
-  // Realtime Listeners
   useEffect(() => {
     if (!userId) return;
     const usersChannel = supabase
@@ -222,9 +217,7 @@ export default function ProfileScreen() {
     }
   }, [userId, selfUserId, viewingSelf, selectedPlan]);
 
-  // 🟢 6. Helper for Verification Badge Rendering
   const renderVerificationBadge = () => {
-    // A. Approved / Verified
     if (isVerifiedBoolean) {
         return (
             <>
@@ -233,7 +226,6 @@ export default function ProfileScreen() {
             </>
         );
     }
-    // B. Pending
     if (verificationStatus === 'pending') {
         return (
             <>
@@ -242,7 +234,6 @@ export default function ProfileScreen() {
             </>
         );
     }
-    // C. Default (Not Verified)
     return (
         <>
             <Text style={styles.unverifiedText}>Apply for verification</Text>
@@ -290,12 +281,10 @@ export default function ProfileScreen() {
             <View style={styles.basicInfoContainer}>
                 <Text style={styles.nameText}>{fullName}</Text>
                 
-                {/* 🟢 7. Updated Verification Row */}
                 <TouchableOpacity 
                     style={styles.verificationRow} 
                     activeOpacity={0.7}
                     onPress={() => {
-                        // Only allow navigation if NOT verified and Self
                         if (!isVerifiedBoolean && viewingSelf) {
                             if (verificationStatus === 'pending') {
                                 Alert.alert("Under Review", "Your documents are currently being reviewed by the admin.");
@@ -332,28 +321,53 @@ export default function ProfileScreen() {
 
           {/* 2. STATS ROW */}
           <View style={styles.statsContainer}>
+            
+            {/* 🔴 CORRECTED RATING CARD (No nested Views) */}
+            <TouchableOpacity 
+                style={styles.statCard}
+                activeOpacity={0.7}
+                onPress={() => {
+                    if (user?.id) {
+                        // Navigate to reviews page
+                        router.push(`/reviews/${user.id}`); 
+                    }
+                }}
+            >
+                <View style={styles.statHeader}>
+                    <Icon source="star" size={18} color="#FFD700" />
+                    <Text style={styles.statTitle}> Rating</Text>
+                </View>
+                
+                <Text style={styles.statValue}>
+                    {user?.rating ? user.rating.toFixed(1) : "0.0"}
+                </Text>
+                
+                <Text style={styles.statSub}>
+                    ({user?.total_reviews || 0} Reviews)
+                </Text>
+            </TouchableOpacity>
+
+            {/* Rank Card */}
             <View style={styles.statCard}>
-                <View style={styles.statHeader}><Text style={styles.statTitle}>Rating</Text></View>
-                <Text style={styles.statValue}>{rating?.toFixed(1)}</Text>
-                <View style={styles.ratingStars}>
-                    {[1,2,3,4].map(i => <Icon key={i} source="star" size={14} color="orange"/>)}
-                    <Icon source="star-half-full" size={14} color="orange"/>
+                <View style={styles.statHeader}><Text style={styles.statTitle}>Rank</Text></View>
+                {/* Space for header */}
+                <View style={{marginTop: 15, alignItems: 'center'}}> 
+                    <Icon source="trophy" size={24} color="#FFD700" />
+                    <Text style={styles.statValueLabel}>{rank}</Text>
                 </View>
             </View>
 
-            <View style={styles.statCard}>
-                <View style={styles.statHeader}><Text style={styles.statTitle}>Rank</Text></View>
-                <Icon source="trophy" size={24} color="#FFD700" />
-                <Text style={styles.statValueLabel}>{rank}</Text>
-            </View>
-
+            {/* Chat Card */}
             <TouchableOpacity 
                 style={styles.statCard} 
                 onPress={!viewingSelf ? () => setChatOpen(true) : undefined}
             >
                 <View style={styles.statHeader}><Text style={styles.statTitle}>Chat</Text></View>
-                <Icon source="message-text-outline" size={24} color="#6A1B9A" />
-                <Text style={styles.statValueLabel}>{formatBDT(chatSub)}</Text>
+                {/* Space for header */}
+                <View style={{marginTop: 15, alignItems: 'center'}}>
+                    <Icon source="message-text-outline" size={24} color="#6A1B9A" />
+                    <Text style={styles.statValueLabel}>{formatBDT(chatSub)}</Text>
+                </View>
             </TouchableOpacity>
           </View>
 
@@ -471,12 +485,15 @@ const styles = StyleSheet.create({
   followButton: { marginTop: 12, borderRadius: 20, paddingHorizontal: 30, height: 40 },
 
   statsContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 10, marginBottom: 10 },
+  
+  // Card styles
   statCard: {
     width: '31%',
     backgroundColor: '#fff',
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center', // Center vertically
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -484,15 +501,25 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
-    paddingTop: 30, 
+    paddingTop: 30, // Header এর জন্য স্পেস
+    minHeight: 100, // সব কার্ডের সমান হাইট
     position: 'relative',
     overflow: 'hidden'
   },
-  statHeader: { backgroundColor: '#f5f5f5', width: '100%', alignItems: 'center', position: 'absolute', top: 0, height: 26, justifyContent: 'center' },
+  
+  statHeader: { backgroundColor: '#f5f5f5', width: '100%', alignItems: 'center', position: 'absolute', top: 0, height: 26, justifyContent: 'center', flexDirection: 'row', gap: 4 },
   statTitle: { fontSize: 12, fontWeight: 'bold', color: '#333' },
+  
   statValue: { fontSize: 18, fontWeight: 'bold', color: '#000' },
   statValueLabel: { fontSize: 14, fontWeight: 'bold', marginTop: 4, color: '#000' },
-  ratingStars: { flexDirection: 'row', marginTop: 4 },
+  
+  // Sub text style for review count
+  statSub: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 4,
+    fontWeight: '500',
+  },
 
   contentSection: { paddingHorizontal: 16, marginTop: 15 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },

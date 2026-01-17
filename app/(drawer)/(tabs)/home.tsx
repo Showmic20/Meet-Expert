@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, FlatList, RefreshControl, Text,TouchableOpacity, Alert } from "react-native";
+import React, { useCallback, useEffect, useState, useLayoutEffect } from "react";
+import { View, StyleSheet, FlatList, RefreshControl, Text, TouchableOpacity, Alert } from "react-native";
 import {
   Card,
   Avatar,
@@ -9,11 +9,16 @@ import {
   TextInput,
   Portal,
   Modal,
-  FAB, 
+  FAB,
+  IconButton,
 } from "react-native-paper";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, DrawerActions } from "@react-navigation/native"; // 🟢 DrawerActions ইমপোর্ট করা হয়েছে
+import { SafeAreaView } from "react-native-safe-area-context"; // 🟢 SafeAreaView ইমপোর্ট করা হয়েছে
 import { supabase } from "../../lib/superbase"; 
 import { router } from "expo-router";
+
+import WalletChip from "../../../component/Walletchip"; 
+import { useAuth } from "../../lib/AuthProvid"; 
 
 // ───────────────────────────────────────────────────────────────────────────────
 // Types
@@ -33,8 +38,8 @@ export type EventItem = {
   title: string;
   description: string | null;
   location: string | null;
-  start_at: string; // ISO
-  end_at: string | null; // ISO
+  start_at: string;
+  end_at: string | null;
   cover_url: string | null;
   created_at: string;
 };
@@ -43,6 +48,14 @@ const PAGE_SIZE = 20;
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const { session } = useAuth();
+
+  // 🟢 1. ডিফল্ট হেডার হাইড করার লজিক
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false, // এটি উপরের ডিফল্ট হেডারটি সরিয়ে দেবে
+    });
+  }, [navigation]);
 
   // ── users state
   const [items, setItems] = useState<UserListItem[]>([]);
@@ -96,7 +109,7 @@ export default function HomeScreen() {
       let q = supabase
         .from("events")
         .select("*", { count: "exact" })
-        .order("start_at", { ascending: true }) // Upcoming events first
+        .order("start_at", { ascending: true })
         .range(from, to);
 
       if (query.trim().length > 0) {
@@ -123,14 +136,12 @@ export default function HomeScreen() {
     fetchEventsPage(0, true);
   }, []);
 
-  // ── Refresh Logic
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([fetchExperts(), fetchEventsPage(0, true)]);
     setRefreshing(false);
   }, [fetchExperts, fetchEventsPage]);
 
-  // ── Infinite Scroll for Events
   const onEndReached = useCallback(() => {
     if (eventsLoading || !eventsHasMore) return;
     fetchEventsPage(eventsPage + 1);
@@ -140,7 +151,6 @@ export default function HomeScreen() {
   // RENDERERS
   // ────────────────────────────────────────────────────────────────────────────
 
-  // 1. Expert Item (Horizontal)
   const renderExpertItem = useCallback(({ item }: { item: UserListItem }) => {
     const name = `${item.first_name} ${item.last_name}`.trim();
     const avatar = item.profile_picture_url || "https://via.placeholder.com/150";
@@ -173,11 +183,9 @@ export default function HomeScreen() {
     );
   }, []);
 
-  // 2. Event Item (Vertical)
   const renderEventItem = useCallback(({ item, index }: { item: EventItem; index: number }) => {
     const start = new Date(item.start_at);
     const isEven = index % 2 === 0;
-    console.log("Event Title:", item.title);
     const cardColor = isEven ? '#6A1B9A' : '#E65100'; 
     
     return (
@@ -207,12 +215,12 @@ export default function HomeScreen() {
   }, []);
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Create Event Logic (DB Connected)
+  // Create Event Logic
   // ────────────────────────────────────────────────────────────────────────────
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
-  const [startAt, setStartAt] = useState(""); // Format: YYYY-MM-DD HH:mm
+  const [startAt, setStartAt] = useState(""); 
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -224,7 +232,6 @@ export default function HomeScreen() {
   };
 
   const handleCreate = async () => {
-    // 1. Basic Validation
     if (!title.trim() || !startAt.trim()) {
       Alert.alert("Required", "Please enter a Title and a Start Date.");
       return;
@@ -232,36 +239,29 @@ export default function HomeScreen() {
 
     setSubmitting(true);
     try {
-      // 2. Get Current User
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         Alert.alert("Error", "You must be logged in to create an event.");
         return;
       }
 
-      // 3. Prepare Payload
-      // Note: In a real app, use a DatePicker. Here we assume user types valid format.
       const payload = {
         creator_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
         location: location.trim() || null,
-        start_at: new Date(startAt).toISOString(), // Converts text to DB Timestamp
+        start_at: new Date(startAt).toISOString(), 
       };
 
-      // 4. Insert into Supabase
       const { data, error } = await supabase
         .from("events")
         .insert(payload)
-        .select() // Return the created row
+        .select()
         .single();
 
       if (error) throw error;
 
-      // 5. Success: Update List & Close Modal
-      // We prepend the new event to the list immediately (Optimistic update)
       setEvents((prev) => [data as EventItem, ...prev]);
-      
       setCreateOpen(false);
       resetForm();
       Alert.alert("Success", "Event created successfully!");
@@ -280,8 +280,35 @@ export default function HomeScreen() {
 
   const ListHeader = (
     <View>
+      {/* 🟢 2. CUSTOM HEADER (এটি এখন মেইন হেডার হিসেবে কাজ করবে) */}
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Home</Text> 
+        
+        {/* Left: Menu & Title */}
+        <View style={styles.headerLeft}>
+            {/* 🟢 3. মেনু বাটনে ক্লিক করলে ড্রয়ার ওপেন হবে */}
+            <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+                <IconButton icon="menu" size={28} iconColor="#333" style={{ margin: 0 }} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Home</Text>
+        </View>
+
+        {/* Right: Wallet, Notif, Profile */}
+        <View style={styles.headerRight}>
+            <WalletChip /> 
+
+            <View style={styles.iconButton}>
+                <IconButton icon="bell-outline" size={24} iconColor="#333" />
+                <View style={styles.redDot} />
+            </View>
+
+            <TouchableOpacity onPress={() => router.push('/(drawer)/(tabs)/profile')}>
+                <Avatar.Image 
+                    size={34} 
+                    source={{ uri: session?.user?.user_metadata?.avatar_url || 'https://i.pravatar.cc/150?img=12' }} 
+                />
+            </TouchableOpacity>
+        </View>
+
       </View>
 
       <Searchbar
@@ -292,7 +319,6 @@ export default function HomeScreen() {
         inputStyle={{minHeight: 0}}
       />
 
-      {/* Experts Section */}
       <View style={styles.sectionHeader}>
          <Text style={styles.sectionTitle}>Experts For you</Text>
       </View>
@@ -306,7 +332,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.horizontalListContent}
       />
 
-      {/* Events Section Title */}
       <View style={[styles.sectionHeader, { marginTop: 20 }]}>
          <Text style={styles.sectionTitle}>Upcoming Events</Text>
       </View>
@@ -314,8 +339,8 @@ export default function HomeScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      {/* Main Events List */}
+    // 🟢 4. SafeAreaView ব্যবহার করা হয়েছে যাতে হেডার উপরে কেটে না যায়
+    <SafeAreaView style={styles.container}>
       <FlatList
         data={events}
         keyExtractor={(item) => item.id}
@@ -330,7 +355,6 @@ export default function HomeScreen() {
         }
       />
 
-      {/* FAB: Add Event */}
       <FAB
         icon="plus"
         style={styles.fab}
@@ -338,7 +362,6 @@ export default function HomeScreen() {
         onPress={() => setCreateOpen(true)}
       />
 
-      {/* Create Event Modal */}
       <Portal>
         <Modal 
           visible={createOpen} 
@@ -346,53 +369,14 @@ export default function HomeScreen() {
           contentContainerStyle={styles.modal}
         >
           <Text style={{ marginBottom: 15, fontWeight: 'bold' }}>Create New Event</Text>
-          
-          <TextInput 
-            label="Title *" 
-            value={title} 
-            onChangeText={setTitle} 
-            style={{ marginBottom: 10, backgroundColor: '#fff' }} 
-            mode="outlined"
-          />
-          
-          <TextInput 
-            label="Location" 
-            value={location} 
-            onChangeText={setLocation} 
-            style={{ marginBottom: 10, backgroundColor: '#fff' }} 
-            mode="outlined"
-          />
-
-          <TextInput 
-            label="Start Date (YYYY-MM-DD HH:mm) *" 
-            value={startAt} 
-            onChangeText={setStartAt} 
-            placeholder="2025-10-25 14:00"
-            style={{ marginBottom: 10, backgroundColor: '#fff' }} 
-            mode="outlined"
-          />
-
-          <TextInput 
-            label="Description" 
-            value={description} 
-            onChangeText={setDescription} 
-            multiline
-            numberOfLines={3}
-            style={{ marginBottom: 20, backgroundColor: '#fff' }} 
-            mode="outlined"
-          />
-
-          <Button 
-            mode="contained" 
-            onPress={handleCreate} 
-            loading={submitting} 
-            disabled={submitting}
-          >
-            Save Event
-          </Button>
+          <TextInput label="Title *" value={title} onChangeText={setTitle} style={{ marginBottom: 10, backgroundColor: '#fff' }} mode="outlined" />
+          <TextInput label="Location" value={location} onChangeText={setLocation} style={{ marginBottom: 10, backgroundColor: '#fff' }} mode="outlined" />
+          <TextInput label="Start Date (YYYY-MM-DD HH:mm) *" value={startAt} onChangeText={setStartAt} placeholder="2025-10-25 14:00" style={{ marginBottom: 10, backgroundColor: '#fff' }} mode="outlined" />
+          <TextInput label="Description" value={description} onChangeText={setDescription} multiline numberOfLines={3} style={{ marginBottom: 20, backgroundColor: '#fff' }} mode="outlined" />
+          <Button mode="contained" onPress={handleCreate} loading={submitting} disabled={submitting}>Save Event</Button>
         </Modal>
       </Portal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -401,14 +385,43 @@ const styles = StyleSheet.create({
   
   headerContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12, // একটু প্যাডিং বাড়ানো হয়েছে
+    backgroundColor: 'white',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: -12, // IconButton এর ডিফল্ট মার্জিন ব্যালেন্স করার জন্য
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24, // ফন্ট সাইজ একটু বড় করা হয়েছে
     fontWeight: 'bold',
+    color: '#000',
+    marginLeft: 0,
   },
+  iconButton: {
+    position: 'relative',
+    marginRight: 5
+  },
+  redDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'red',
+    borderWidth: 1,
+    borderColor: 'white'
+  },
+
   search: {
     marginHorizontal: 16,
     marginBottom: 10,
