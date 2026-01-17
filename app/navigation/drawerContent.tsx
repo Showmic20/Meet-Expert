@@ -87,7 +87,7 @@ export default function CustomDrawerContent(props: any) {
           onPress={() => router.push("/admin-requests")} 
         />
 
-        {/* 🔴 নতুন Complaints Panel */}
+        {/*  নতুন Complaints Panel */}
         <DrawerItem
           label="Complaints & Reports"
           icon={({ color, size }) => (
