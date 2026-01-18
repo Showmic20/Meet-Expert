@@ -24,17 +24,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete'; // 🟢 ইমপোর্ট
-import { supabase } from './lib/superbase'; // 🟢 Supabase ইমপোর্ট (পাথ ঠিক আছে কিনা দেখুন)
-
-// 🟢 আপনার Google API Key এখানে বসান
-const GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY_HERE"; 
+// ❌ GooglePlacesAutocomplete বাদ দেওয়া হয়েছে
+import { supabase } from './lib/superbase';
 
 const DURATION_OPTIONS = [
     { label: '30m', value: 30 },
     { label: '1h', value: 60 },
-    { label: '1.5h', value: 90 },
     { label: '2h', value: 120 },
+    { label: '4h', value: 240 },
     { label: 'Custom', value: -1 },
 ];
 
@@ -42,26 +39,28 @@ export default function CreateEventScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  // ─── Form States ─────────────────────────────
+  // ─── States ───
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
-  const [location, setLocation] = useState(''); // 🟢 লোকেশন নাম
-  const [coords, setCoords] = useState<any>(null); // 🟢 অক্ষাংশ/দ্রাঘিমাংশ
   const [details, setDetails] = useState('');
   
+  // 🟢 সাধারণ লোকেশন স্টেট
+  const [locationName, setLocationName] = useState(''); 
+
+  // Date & Time
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [time, setTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
 
+  // Others
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [customDuration, setCustomDuration] = useState('');
   const [showCustomDurationDialog, setShowCustomDurationDialog] = useState(false);
-
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // ─── Handlers ────────────────────────────────
+  // ─── Handlers ───
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
@@ -76,38 +75,23 @@ export default function CreateEventScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
-
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-      allowsMultipleSelection: true,
+      allowsEditing: true, quality: 0.8,
     });
-
-    if (!result.canceled) {
-      const newImages = result.assets.map(asset => asset.uri);
-      setImages([...images, ...newImages]);
-    }
+    if (!result.canceled) setImages([result.assets[0].uri]);
   };
 
-  const removeImage = (indexToRemove: number) => {
-      setImages(images.filter((_, index) => index !== indexToRemove));
-  }
+  const removeImage = () => setImages([]);
 
-  const handleDurationPress = (value: number) => {
-      if (value === -1) setShowCustomDurationDialog(true);
-      else setSelectedDuration(value);
-  };
-
-  // 🟢 ফাইনাল সাবমিট হ্যান্ডলার (Supabase যুক্ত করা হয়েছে)
   const handleCreateEvent = async () => {
-   // 🟢 পরিবর্তন: location চেকটি সরিয়ে ফেলা হয়েছে
-if (!eventName.trim() || !description.trim()) {
-  Alert.alert('Missing Info', 'Event Name and Description are required.');
-  return;
-}
-    const finalDuration = selectedDuration === -1 ? parseInt(customDuration) : selectedDuration;
-    if (!finalDuration || finalDuration <= 0) {
+    if (!eventName.trim() || !description.trim() || !locationName.trim()) {
+      Alert.alert('Missing Info', 'Event Name, Description, and Location are required.');
+      return;
+    }
+    
+    const durationInMinutes = selectedDuration === -1 ? parseInt(customDuration) : selectedDuration;
+    if (!durationInMinutes || durationInMinutes <= 0) {
         Alert.alert('Invalid Duration', 'Please select a valid duration.');
         return;
     }
@@ -115,52 +99,42 @@ if (!eventName.trim() || !description.trim()) {
     setSubmitting(true);
 
     try {
-        // ১. কারেন্ট ইউজার চেক করা
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("You must be logged in.");
 
-        // ২. ডেট এবং টাইম কম্বাইন করে ISO স্ট্রিং বানানো
         const startDateTime = new Date(date);
         startDateTime.setHours(time.getHours());
         startDateTime.setMinutes(time.getMinutes());
 
-        // ৩. Supabase এ ডেটা পাঠানো
+        const endDateTime = new Date(startDateTime.getTime() + durationInMinutes * 60000);
+        const fullDescription = details.trim() ? `${description}\n\nDetails:\n${details}` : description;
+        const coverPhotoUrl = images.length > 0 ? images[0] : null;
+
         const { error } = await supabase.from('events').insert({
             creator_id: user.id,
             title: eventName,
-            description: description,
-            location: location, // 🟢 গুগল ম্যাপ থেকে পাওয়া লোকেশন
-            // latitude: coords?.lat, // যদি টেবিলে কলাম থাকে তবে আনকমেন্ট করুন
-            // longitude: coords?.lng,
+            description: fullDescription,
+            location: locationName, // ব্যবহারকারীর লেখা টেক্সট সরাসরি সেভ হবে
+            latitude: null, // ম্যানুয়াল ইনপুটে কো-অর্ডিনেট পাওয়া সম্ভব নয়
+            longitude: null,
             start_at: startDateTime.toISOString(),
-            duration_minutes: finalDuration,
-            details: details,
-            // cover_url: images[0] || null, // ইমেজ আপলোডের লজিক পরে বসাতে হবে
+            end_at: endDateTime.toISOString(),
+            cover_url: coverPhotoUrl, 
         });
 
         if (error) throw error;
-
-        Alert.alert("Success", "Event Created!", [
-            { text: "OK", onPress: () => router.back() } 
-        ]);
-
+        Alert.alert("Success", "Event Created!", [{ text: "OK", onPress: () => router.back() }]);
     } catch (e: any) {
-        console.error(e);
-        Alert.alert("Error", e.message || "Failed to create event");
+        Alert.alert("Error", e.message);
     } finally {
         setSubmitting(false);
     }
   };
 
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView 
-            contentContainerStyle={styles.scrollContent} 
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled" // 🟢 অটোকমপ্লিট লিস্টে ট্যাপ করার জন্য জরুরি
-        >
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           
           <TextInput
             mode="outlined"
@@ -168,59 +142,28 @@ if (!eventName.trim() || !description.trim()) {
             value={eventName}
             onChangeText={setEventName}
             style={styles.input}
-            left={<TextInput.Icon icon="format-title" />}
           />
 
-          {/* 🟢 Google Places Autocomplete */}
-          <Text variant="labelMedium" style={{marginBottom: 5, color: theme.colors.primary}}>Location *</Text>
-          <View style={styles.autocompleteContainer}>
-             <GooglePlacesAutocomplete
-                placeholder='Search Location'
-                onPress={(data, details = null) => {
-                    // লোকেশন সিলেক্ট করলে এখানে আসবে
-                    setLocation(data.description);
-                    if (details) {
-                        setCoords(details.geometry.location);
-                    }
-                }}
-                query={{
-                    key: GOOGLE_API_KEY,
-                    language: 'en',
-                }}
-                fetchDetails={true}
-                styles={{
-                    textInput: {
-                        backgroundColor: theme.colors.surface,
-                        height: 50,
-                        borderRadius: 5,
-                        borderWidth: 1,
-                        borderColor: 'gray',
-                        color: theme.colors.onSurface,
-                        paddingHorizontal: 10,
-                    },
-                    listView: {
-                        zIndex: 1000, // লিস্ট যাতে উপরে ভেসে থাকে
-                        position: 'absolute',
-                        top: 55,
-                        width: '100%',
-                        backgroundColor: 'white',
-                    }
-                }}
-                enablePoweredByContainer={false}
-             />
-          </View>
+          {/* 🟢 MANUAL LOCATION INPUT (NO API REQUIRED) */}
+          <TextInput
+            mode="outlined"
+            label="Location *"
+            placeholder="e.g. Innovation Hall, Dhaka"
+            value={locationName}
+            onChangeText={setLocationName}
+            style={styles.input}
+            left={<TextInput.Icon icon="map-marker" />}
+          />
 
           <TextInput
             mode="outlined"
             label="Short Description *"
             value={description}
             onChangeText={setDescription}
-            multiline
-            numberOfLines={3}
-            style={styles.input}
+            multiline numberOfLines={3} style={styles.input}
           />
 
-          {/* Date & Time Row */}
+          {/* Date & Time */}
           <View style={styles.rowContainer}>
             <TouchableOpacity onPress={() => setShowDatePicker(true)} style={[styles.pickerButton, {borderColor: theme.colors.outline}]}>
               <MaterialCommunityIcons name="calendar-month" size={24} color={theme.colors.primary} style={{marginRight: 8}} />
@@ -229,9 +172,7 @@ if (!eventName.trim() || !description.trim()) {
                   <Text variant="bodyMedium" style={{fontWeight: 'bold'}}>{date.toLocaleDateString()}</Text>
               </View>
             </TouchableOpacity>
-
             <View style={{width: 15}} />
-
             <TouchableOpacity onPress={() => setShowTimePicker(true)} style={[styles.pickerButton, {borderColor: theme.colors.outline}]}>
               <MaterialCommunityIcons name="clock-outline" size={24} color={theme.colors.primary} style={{marginRight: 8}} />
               <View>
@@ -244,18 +185,19 @@ if (!eventName.trim() || !description.trim()) {
           {showDatePicker && <DateTimePicker value={date} mode="date" display='default' onChange={onDateChange} minimumDate={new Date()} />}
           {showTimePicker && <DateTimePicker value={time} mode="time" display='default' onChange={onTimeChange} />}
 
+          {/* Duration */}
           <Text variant="titleMedium" style={styles.sectionTitle}>Duration</Text>
           <View style={styles.chipContainer}>
               {DURATION_OPTIONS.map((option) => {
                   const isSelected = selectedDuration === option.value;
                   return (
                       <Chip 
-                          key={option.label} 
-                          mode={isSelected ? 'flat' : 'outlined'} 
-                          selected={isSelected}
-                          onPress={() => handleDurationPress(option.value)}
+                          key={option.label} mode={isSelected ? 'flat' : 'outlined'} selected={isSelected}
+                          onPress={() => {
+                             if (option.value === -1) setShowCustomDurationDialog(true);
+                             else setSelectedDuration(option.value);
+                          }}
                           style={styles.chip}
-                          icon={option.value === -1 ? 'pencil' : 'timer-sand'}
                       >
                           {option.value === -1 && selectedDuration === -1 && customDuration ? `${customDuration}m` : option.label}
                       </Chip>
@@ -266,48 +208,38 @@ if (!eventName.trim() || !description.trim()) {
           <TextInput
             mode="outlined"
             label="Details (Rules/Requirements)"
-            value={details}
-            onChangeText={setDetails}
-            multiline
-            numberOfLines={5}
-            style={[styles.input, { marginTop: 20 }]}
+            value={details} onChangeText={setDetails}
+            multiline numberOfLines={5} style={[styles.input, { marginTop: 20 }]}
           />
 
-          <Text variant="titleMedium" style={styles.sectionTitle}>Add Photos</Text>
+          {/* Photos */}
+          <Text variant="titleMedium" style={styles.sectionTitle}>Cover Photo</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoScroll}>
               <TouchableOpacity style={[styles.addPhotoButton, {backgroundColor: theme.colors.elevation.level2, borderColor: theme.colors.outline}]} onPress={pickImage}>
                   <MaterialCommunityIcons name="camera-plus" size={30} color={theme.colors.primary} />
-                  <Text variant="labelSmall" style={{marginTop: 5}}>Add</Text>
+                  <Text variant="labelSmall" style={{marginTop: 5}}>Select</Text>
               </TouchableOpacity>
-              
               {images.map((imgUri, index) => (
                   <View key={index} style={styles.imagePreviewContainer}>
                       <Image source={{ uri: imgUri }} style={styles.imagePreview} />
-                      <IconButton icon="close-circle" size={20} iconColor={theme.colors.error} style={styles.removeImageIcon} onPress={() => removeImage(index)} />
+                      <IconButton icon="close-circle" size={20} iconColor={theme.colors.error} style={styles.removeImageIcon} onPress={removeImage} />
                   </View>
               ))}
           </ScrollView>
-
         </ScrollView>
 
         <View style={[styles.footer, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.outlineVariant }]}>
-          <Button
-            mode="contained"
-            onPress={handleCreateEvent}
-            loading={submitting}
-            disabled={submitting}
-            contentStyle={{ height: 50 }}
-            style={{ borderRadius: 25 }}
-          >
+          <Button mode="contained" onPress={handleCreateEvent} loading={submitting} disabled={submitting} contentStyle={{ height: 50 }}>
             {submitting ? "Creating..." : "Create Event"}
           </Button>
         </View>
 
+        {/* Custom Duration Dialog */}
         <Portal>
             <Dialog visible={showCustomDurationDialog} onDismiss={() => setShowCustomDurationDialog(false)}>
                 <Dialog.Title>Custom Duration</Dialog.Title>
                 <Dialog.Content>
-                    <TextInput label="Minutes" keyboardType="numeric" value={customDuration} onChangeText={setCustomDuration} mode="outlined" right={<TextInput.Affix text="min" />} />
+                    <TextInput label="Minutes" keyboardType="numeric" value={customDuration} onChangeText={setCustomDuration} mode="outlined" />
                 </Dialog.Content>
                 <Dialog.Actions>
                     <Button onPress={() => setShowCustomDurationDialog(false)}>Cancel</Button>
@@ -324,11 +256,6 @@ if (!eventName.trim() || !description.trim()) {
 const styles = StyleSheet.create({
   scrollContent: { padding: 20, paddingBottom: 30 },
   input: { marginBottom: 15, backgroundColor: 'transparent' },
-  // 🟢 অটোকমপ্লিট বক্সের জন্য স্টাইল
-  autocompleteContainer: {
-     zIndex: 1, // এটি অন্যান্য উপাদানের উপরে থাকবে
-     marginBottom: 15,
-  },
   rowContainer: { flexDirection: 'row', marginBottom: 15, justifyContent: 'space-between' },
   pickerButton: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 12, borderWidth: 1, borderRadius: 8 },
   sectionTitle: { marginTop: 15, marginBottom: 10, fontWeight: 'bold' },

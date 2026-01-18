@@ -312,11 +312,11 @@ export default function HomeScreen() {
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         color={theme.colors.onPrimary}
         // 🟢 এই লাইনটি আপনাকে ইভেন্ট ক্রিয়েশন পেজে নিয়ে যাবে
-        onPress={() => router.push('/create-event')} 
+        onPress={() => router.push('/CreateEvent')} 
       />
 
       {/* নিচের Portal/Modal অংশটি এখন আর দরকার নেই যদি আপনি নতুন পেজ ব্যবহার করেন, তবে আমি রেখে দিলাম */}
-  
+   
     </SafeAreaView>
   );
 }

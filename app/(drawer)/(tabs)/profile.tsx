@@ -53,6 +53,7 @@ export type DBUser = {
   rank?: string;
   chat_subscription_bdt?: number;
   location?: string;
+  availability?: string | null; // 🟢 ADDED: Availability field
   [key: string]: any;
 };
 
@@ -263,7 +264,23 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
                 <Text style={styles.occupationText}>{profession} {company ? `at ${company}` : ""}</Text>
                 <View style={styles.locationRow}><Icon source="map-marker-outline" size={14} color="gray" /><Text style={styles.locationText}>{location}</Text></View>
-                {!viewingSelf && <Button mode="contained" style={styles.followButton} buttonColor="#2196F3">Follow</Button>}
+                
+                {/* 🟢 MODIFIED: Edit Profile Button added here */}
+                {viewingSelf ? (
+                    <Button 
+                        mode="outlined" 
+                        onPress={() => router.push('/edit-profile')} // Link to the new page
+                        style={{ marginTop: 15, borderRadius: 20, borderColor: '#2196F3', borderWidth: 1 }}
+                        textColor="#2196F3"
+                        icon="account-edit"
+                    >
+                        Edit Profile
+                    </Button>
+                ) : (
+                    <Button mode="contained" style={styles.followButton} buttonColor="#2196F3">
+                        Follow
+                    </Button>
+                )}
             </View>
           </View>
           <Divider style={{ height: 1, backgroundColor: '#f0f0f0', marginVertical: 10 }} />
@@ -283,6 +300,27 @@ export default function ProfileScreen() {
                 <View style={{marginTop: 15, alignItems: 'center'}}><Icon source="message-text-outline" size={24} color="#6A1B9A" /><Text style={styles.statValueLabel}>{formatCoins(hourlyRate)}/hr</Text></View>
             </TouchableOpacity>
           </View>
+
+          {/* 🟢 NEW SECTION: AVAILABILITY */}
+          <View style={styles.contentSection}>
+             {user?.availability ? (
+                <View style={styles.availabilityContainer}>
+                    <View style={styles.availIconBox}>
+                        <Icon source="clock-check-outline" size={24} color="#1565C0" />
+                    </View>
+                    <View style={{flex: 1}}>
+                        <Text style={styles.availLabel}>Preferred Available Time</Text>
+                        <Text style={styles.availValue}>{user.availability}</Text>
+                    </View>
+                </View>
+             ) : (
+                <View style={[styles.availabilityContainer, { backgroundColor: '#f9f9f9', borderColor: '#eee' }]}>
+                    <Icon source="clock-outline" size={22} color="#aaa" />
+                    <Text style={{marginLeft: 10, color: '#aaa', fontStyle: 'italic', fontSize: 13}}>Available time not specified</Text>
+                </View>
+             )}
+          </View>
+
           {/* SECTIONS */}
           <View style={styles.contentSection}><View style={styles.sectionHeader}><Text style={styles.sectionTitle}>About</Text></View><View style={styles.aboutBox}><Text style={styles.bioText} numberOfLines={4}>{bio}</Text><Text style={styles.seeMoreText}>see more...</Text></View></View>
           <View style={styles.contentSection}>
@@ -504,6 +542,38 @@ const styles = StyleSheet.create({
   skillsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   skillChip: { backgroundColor: '#f0f0f0' },
   
+  // 🟢 NEW STYLES: Availability
+  availabilityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD', 
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  availIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#BBDEFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  availLabel: {
+    fontSize: 11,
+    color: '#1565C0',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  availValue: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#0D47A1',
+  },
+
   // 🟢 MODALS
   modalContainer: { marginHorizontal: 15, backgroundColor: "white", padding: 15, borderRadius: 16, width: '92%', alignSelf: 'center', maxWidth: 400 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
