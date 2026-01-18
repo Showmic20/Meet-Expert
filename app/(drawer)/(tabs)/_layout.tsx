@@ -4,8 +4,10 @@ import { IconButton } from "react-native-paper";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/superbase";
 import { useAuth } from "../../lib/AuthProvid";
+import { useLanguage } from '../../lib/LanguageContext';
 
 export default function TabsLayout() {
+  const { t } = useLanguage();
   const { session, loading } = useAuth();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -32,7 +34,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: t('home'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -41,7 +43,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Chat",
+          title: t('chat'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubble-outline" size={size} color={color} />
           ),
@@ -50,7 +52,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t('profile'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           ),

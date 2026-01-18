@@ -1,34 +1,31 @@
+// navigation/drawerContent.tsx (বা আপনার ফাইলের লোকেশন অনুযায়ী)
 import React, { useContext, useState, useEffect } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { List, Switch, Divider, Text } from "react-native-paper";
 import { Redirect, router } from "expo-router";
-import { supabase } from "../lib/superbase"; // পাথ ঠিক আছে কিনা চেক করুন
-import { ThemeCtx } from "../../app/_layout";
-import { Ionicons } from '@expo/vector-icons'; // আইকনের জন্য
+import { supabase } from "../lib/superbase"; 
+import { ThemeCtx } from "../_layout"; // পাথ ঠিক আছে কিনা চেক করুন (app/_layout হলে ../_layout হতে পারে)
+import { Ionicons } from '@expo/vector-icons'; 
+// 🟢 Import Language Hook
+import { useLanguage } from "../lib/LanguageContext"; 
 
 export default function CustomDrawerContent(props: any) {
   const { dark, toggle } = useContext(ThemeCtx);
   const [loggedOut, setLoggedOut] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false); // অ্যাডমিন চেক করার স্টেট
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // ১. ইউজার অ্যাডমিন কিনা চেক করা (অপশনাল)
+  // 🟢 ভাষা ব্যবহারের জন্য হুক
+  const { language, toggleLanguage, t } = useLanguage();
+
   useEffect(() => {
     const checkUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // এখানে আপনি আপনার অ্যাডমিন ইমেইলটি বসান
-      // অথবা যদি ডাটাবেসে role কলাম থাকে সেটা চেক করতে পারেন
       const adminEmail = "admin@example.com"; 
-
       if (user?.email === adminEmail) {
         setIsAdmin(true);
       }
-      
-      // নোট: আপাতত টেস্টিংয়ের জন্য সব সময় true করে রাখতে পারেন
-      // setIsAdmin(true); 
     };
-    
     checkUserRole();
   }, []);
 
@@ -38,7 +35,8 @@ export default function CustomDrawerContent(props: any) {
       if (error) {
         console.error("Error logging out:", error.message);
       } else {
-        Alert.alert("Logged out successfully!");
+        // 🟢 বাংলা/ইংরেজি মেসেজ
+        Alert.alert(t('logoutSuccess'));
         setLoggedOut(true);
       }
     } catch (error) {
@@ -53,43 +51,46 @@ export default function CustomDrawerContent(props: any) {
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={styles.container}>
       <View style={styles.header}>
-        <Text variant="titleMedium">Settings</Text>
+        {/* 🟢 সেটিংস টাইটেল */}
+        <Text variant="titleMedium">{t('settings')}</Text>
       </View>
 
       <List.Section>
         {/* 1) Dark theme */}
         <List.Item
-          title="Dark Theme"
-          left={() => <List.Icon icon="theme-light-dark" />} // আইকন দিলে সুন্দর লাগে
+          title={t('darkTheme')} // 🟢 বাংলা সাপোর্ট
+          left={() => <List.Icon icon="theme-light-dark" />}
           right={() => <Switch value={dark} onValueChange={toggle} />}
           onPress={toggle}
         />
         <Divider />
 
-        {/* 2) Language */}
-        <DrawerItem
-          label="Language"
-          icon={({ color, size }) => (
-            <Ionicons name="language-outline" size={size} color={color} />
+        {/* 🟢 2) Language Toggle (Direct Switch) */}
+        <List.Item
+          title={t('language')}
+          description={language === 'en' ? "English" : "বাংলা"} // নিচে ছোট করে বর্তমান ভাষা দেখাবে
+          left={props => <List.Icon {...props} icon="translate" />}
+          right={() => (
+            <Switch 
+              value={language === 'bn'} // বাংলা হলে অন থাকবে
+              onValueChange={toggleLanguage} 
+              color="green" 
+            />
           )}
-          onPress={() => router.push("/(drawer)/(tabs)/settings/language")}
         />
         <Divider />
 
-        {/* 🔴 ৩) অ্যাডমিন প্যানেল বাটন (NEW) */}
-        {/* আপনি চাইলে {isAdmin && ...} দিয়ে এটি সাধারণ ইউজারদের থেকে লুকাতে পারেন */}
-        {/* আগের Admin Panel (Verification) */}
+        {/* 3) Admin Panel Items */}
         <DrawerItem
-          label="Verification Requests"
+          label={t('verificationRequests')}
           icon={({ color, size }) => (
             <Ionicons name="shield-checkmark-outline" size={size} color="blue" />
           )}
           onPress={() => router.push("/admin-requests")} 
         />
 
-        {/*  নতুন Complaints Panel */}
         <DrawerItem
-          label="Complaints & Reports"
+          label={t('complaints')}
           icon={({ color, size }) => (
             <Ionicons name="alert-circle-outline" size={size} color="red" />
           )}
@@ -99,7 +100,7 @@ export default function CustomDrawerContent(props: any) {
 
         {/* 4) Logout */}
         <DrawerItem 
-          label="Logout" 
+          label={t('logout')}
           icon={({ color, size }) => (
             <Ionicons name="log-out-outline" size={size} color={color} />
           )}

@@ -7,58 +7,75 @@ import {
   useTheme, 
   ActivityIndicator, 
   Divider, 
-  TouchableRipple,
-  Surface 
+  TouchableRipple
 } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useNotifications } from './lib/NotificationProvider';
+import { useLanguage } from './lib/LanguageContext'; // 🟢 Import Language Hook
 
-// 🟢 Time Formatter Helper
-const getTimeAgo = (dateString: string) => {
+// 🟢 Localized Time Helper
+const getTimeAgo = (dateString: string, lang: 'en' | 'bn') => {
   const now = new Date();
   const date = new Date(dateString);
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
+  const isBn = lang === 'bn';
+
   let interval = Math.floor(seconds / 31536000);
-  if (interval >= 1) return interval + "y ago";
+  if (interval >= 1) return isBn ? `${interval} বছর আগে` : `${interval}y ago`;
+  
   interval = Math.floor(seconds / 2592000);
-  if (interval >= 1) return interval + "mo ago";
+  if (interval >= 1) return isBn ? `${interval} মাস আগে` : `${interval}mo ago`;
+  
   interval = Math.floor(seconds / 86400);
-  if (interval >= 1) return interval + "d ago";
+  if (interval >= 1) return isBn ? `${interval} দিন আগে` : `${interval}d ago`;
+  
   interval = Math.floor(seconds / 3600);
-  if (interval >= 1) return interval + "h ago";
+  if (interval >= 1) return isBn ? `${interval} ঘন্টা আগে` : `${interval}h ago`;
+  
   interval = Math.floor(seconds / 60);
-  if (interval >= 1) return interval + "m ago";
-  return "Just now";
+  if (interval >= 1) return isBn ? `${interval} মিনিট আগে` : `${interval}m ago`;
+  
+  return isBn ? "এইমাত্র" : "Just now";
+};
+
+// 🟢 Helper to Translate Database Messages
+const getLocalizedMessage = (message: string, lang: 'en' | 'bn') => {
+  if (lang === 'en') return message;
+
+  // ডাটাবেসের ইংরেজি মেসেজগুলোর বাংলা ম্যাপিং
+  if (message.includes("sent you a chat request")) return "আপনাকে চ্যাট রিকোয়েস্ট পাঠিয়েছেন।";
+  if (message.includes("started following you")) return "আপনাকে ফলো করা শুরু করেছেন।";
+  if (message.includes("New Chat Request")) return "নতুন চ্যাট রিকোয়েস্ট";
+  
+  return message; // কোনো ম্যাচ না পেলে যা আছে তাই দেখাবে
 };
 
 export default function NotificationScreen() {
-  const { notifications, loading, markAsRead } = useNotifications(); // fetchNotifications exposed if added in provider, else remove
+  const { notifications, loading, markAsRead } = useNotifications();
+  const { t, language } = useLanguage(); // 🟢 Get Language
   const theme = useTheme();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Mark as read when screen opens
   useEffect(() => {
     markAsRead();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // যদি আপনার প্রোভাইডারে fetchNotifications এক্সপোজ করা না থাকে, 
-    // তবে এই লাইনটি কাজ নাও করতে পারে। সেক্ষেত্রে শুধু timeout দিন।
-    // await fetchNotifications(); 
     setTimeout(() => setRefreshing(false), 1000);
   };
 
   const renderItem = ({ item }: { item: any }) => {
-    // 🎨 Unread vs Read Background Styling
     const backgroundColor = item.is_read ? theme.colors.surface : theme.colors.elevation.level2;
     
-    // 👤 Avatar Logic: System vs User
     const isSystem = item.type === 'system' || !item.actor;
     const actorName = item.actor ? `${item.actor.first_name} ${item.actor.last_name}` : "System";
     const avatarUrl = item.actor?.profile_picture_url;
+
+    // 🟢 Translate Message based on Language
+    const displayMessage = getLocalizedMessage(item.message, language);
 
     return (
       <TouchableRipple 
@@ -66,7 +83,7 @@ export default function NotificationScreen() {
         rippleColor="rgba(0, 0, 0, .1)"
       >
         <View style={[styles.itemContainer, { backgroundColor }]}>
-          {/* Left: Avatar */}
+          {/* Avatar Section */}
           <View style={styles.avatarContainer}>
             {isSystem ? (
                <Avatar.Icon size={48} icon="bell-ring" style={{backgroundColor: theme.colors.secondaryContainer}} color={theme.colors.onSecondaryContainer} />
@@ -76,7 +93,6 @@ export default function NotificationScreen() {
                <Avatar.Text size={48} label={item.actor?.first_name?.charAt(0) || "U"} />
             )}
             
-            {/* Icon Badge for type (optional) */}
             {item.type === 'chat_request' && (
               <View style={[styles.iconBadge, { backgroundColor: theme.colors.primary }]}>
                 <Avatar.Icon size={14} icon="message" color="white" style={{backgroundColor:'transparent'}} />
@@ -84,18 +100,18 @@ export default function NotificationScreen() {
             )}
           </View>
 
-          {/* Middle: Content */}
+          {/* Text Content */}
           <View style={styles.textContainer}>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
               <Text style={{ fontWeight: 'bold' }}>{actorName}</Text>
-              <Text> {item.message}</Text>
+              <Text> {displayMessage}</Text>
             </Text>
             <Text variant="labelSmall" style={{ color: theme.colors.outline, marginTop: 4 }}>
-              {getTimeAgo(item.created_at)}
+              {getTimeAgo(item.created_at, language)} {/* 🟢 Pass Language */}
             </Text>
           </View>
 
-          {/* Right: Unread Dot Indicator */}
+          {/* Unread Dot */}
           {!item.is_read && (
             <View style={[styles.unreadDot, { backgroundColor: theme.colors.primary }]} />
           )}
@@ -106,13 +122,12 @@ export default function NotificationScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* 🟢 Header */}
       <Appbar.Header elevated>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="Notifications" />
+        {/* 🟢 Translated Title */}
+        <Appbar.Content title={t('notifications')} />
       </Appbar.Header>
 
-      {/* 🟢 Content */}
       {loading && notifications.length === 0 ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" animating={true} />
@@ -127,7 +142,10 @@ export default function NotificationScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
                <Avatar.Icon size={80} icon="bell-sleep" style={{backgroundColor: 'transparent'}} color={theme.colors.outline} />
-               <Text variant="titleMedium" style={{color: theme.colors.outline, marginTop: 10}}>No notifications yet</Text>
+               {/* 🟢 Translated Empty State */}
+               <Text variant="titleMedium" style={{color: theme.colors.outline, marginTop: 10}}>
+                 {t('noNotifications')}
+               </Text>
             </View>
           }
           contentContainerStyle={notifications.length === 0 && { flex: 1 }}

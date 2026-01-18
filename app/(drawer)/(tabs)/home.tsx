@@ -23,6 +23,7 @@ import WalletChip from "../../../component/Walletchip";
 import { useAuth } from "../../lib/AuthProvid"; 
 // 🟢 Import Notification Hook
 import { useNotifications } from "../../lib/NotificationProvider";
+import { useLanguage } from "../../lib/LanguageContext";
 
 // ───────────────────────────────────────────────────────────────────────────────
 // Types
@@ -54,6 +55,7 @@ export default function HomeScreen() {
   const navigation = useNavigation();
   const { session } = useAuth();
   const theme = useTheme();
+  const { t } = useLanguage();
   
   // 🟢 Get Notification Data
   const { unreadCount } = useNotifications();
@@ -237,7 +239,7 @@ export default function HomeScreen() {
             <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
                 <IconButton icon="menu" size={28} iconColor="#333" style={{ margin: 0 }} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Home</Text>
+            <Text style={styles.headerTitle}>{t('home')}</Text>
         </View>
 
         <View style={styles.headerRight}>
@@ -272,7 +274,7 @@ export default function HomeScreen() {
       </View>
 
       <Searchbar
-        placeholder="Search for an expert"
+       placeholder={t('searchPlaceholder')}
         value={query}
         onChangeText={setQuery}
         style={styles.search}
@@ -280,7 +282,7 @@ export default function HomeScreen() {
       />
 
       <View style={styles.sectionHeader}>
-         <Text style={styles.sectionTitle}>Experts For you</Text>
+         <Text style={styles.sectionTitle}>{t('expertsForYou')}</Text>
       </View>
       
       <FlatList
@@ -293,7 +295,7 @@ export default function HomeScreen() {
       />
 
       <View style={[styles.sectionHeader, { marginTop: 20 }]}>
-         <Text style={styles.sectionTitle}>Upcoming Events</Text>
+         <Text style={styles.sectionTitle}>{t('upcomingEvents')}</Text>
       </View>
     </View>
   );
