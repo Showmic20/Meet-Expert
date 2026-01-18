@@ -11,6 +11,7 @@ import {
   Modal,
   FAB,
   IconButton,
+  useTheme
 } from "react-native-paper";
 import { useNavigation, DrawerActions } from "@react-navigation/native"; // 🟢 DrawerActions ইমপোর্ট করা হয়েছে
 import { SafeAreaView } from "react-native-safe-area-context"; // 🟢 SafeAreaView ইমপোর্ট করা হয়েছে
@@ -223,6 +224,7 @@ export default function HomeScreen() {
   const [startAt, setStartAt] = useState(""); 
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const theme = useTheme();
 
   const resetForm = () => {
     setTitle("");
@@ -357,9 +359,10 @@ export default function HomeScreen() {
 
       <FAB
         icon="plus"
-        style={styles.fab}
-        color="white"
-        onPress={() => setCreateOpen(true)}
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        color={theme.colors.onPrimary}
+        // 🟢 এই লাইনটি আপডেট করুন:
+        onPress={() => router.push('/CreateEvent')}
       />
 
       <Portal>

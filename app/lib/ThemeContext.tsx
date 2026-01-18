@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   MD3LightTheme,
   MD3DarkTheme,
   PaperProvider,
   adaptNavigationTheme,
-  MD3Theme, // টাইপ ইমপোর্ট
 } from 'react-native-paper';
 import {
   DarkTheme as NavigationDarkTheme,
@@ -14,36 +13,33 @@ import {
   ThemeProvider as NavigationThemeProvider,
 } from '@react-navigation/native';
 
-// ১. নেভিগেশন থিম অ্যাডাপ্ট করা
+// 1. Merge Navigation Themes with Paper Themes
 const { LightTheme, DarkTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
   reactNavigationDark: NavigationDarkTheme,
 });
 
-// ২. কাস্টম লাইট থিম মার্জ করা
 const CombinedLightTheme = {
   ...MD3LightTheme,
   ...LightTheme,
   colors: {
     ...MD3LightTheme.colors,
     ...LightTheme.colors,
-    primary: '#2196F3',
+    primary: '#2196F3', // Change your primary color here
     background: '#ffffff',
     surface: '#ffffff',
   },
 };
 
-// ৩. কাস্টম ডার্ক থিম মার্জ করা
 const CombinedDarkTheme = {
   ...MD3DarkTheme,
   ...DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
     ...DarkTheme.colors,
-    primary: '#90CAF9',
+    primary: '#90CAF9', 
     background: '#121212',
     surface: '#1E1E1E',
-    card: '#2C2C2C',
   },
 };
 
@@ -64,6 +60,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
+  // 2. Load saved theme from storage
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -82,26 +79,24 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     loadTheme();
   }, []);
 
+  // 3. Toggle function
   const toggleTheme = async () => {
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
-    try {
-      await AsyncStorage.setItem('userTheme', newMode ? 'dark' : 'light');
-    } catch (e) {
-      console.log('Error saving theme:', e);
-    }
+    await AsyncStorage.setItem('userTheme', newMode ? 'dark' : 'light');
   };
 
   const theme = isDarkMode ? CombinedDarkTheme : CombinedLightTheme;
 
-  if (!loaded) return null;
+  // Prevent white flash while loading
+  if (!loaded) {
+    return null; 
+  }
 
   return (
     <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
-      {/* 🔴 FIX: 'as unknown as MD3Theme' ব্যবহার করা হয়েছে।
-         এটি TypeScript কে ফোর্স করে থিমটি গ্রহণ করতে বাধ্য করবে।
-      */}
-      <PaperProvider theme={theme as unknown as MD3Theme}>
+      {/* We cast to 'any' to avoid TypeScript conflicts between Paper and Navigation types */}
+      <PaperProvider theme={theme as any}>
         <NavigationThemeProvider value={theme as any}>
           {children}
         </NavigationThemeProvider>
