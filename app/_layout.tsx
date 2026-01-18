@@ -1,7 +1,8 @@
-// app/_layout.tsx (root)
 import React, { useMemo, useState } from "react";
 import { Stack } from "expo-router";
 import AuthProvider2 from "./lib/AuthProvid";
+// 🟢 1. Import NotificationProvider
+import { NotificationProvider } from "./lib/NotificationProvider"; 
 import { Provider as PaperProvider, MD3LightTheme, MD3DarkTheme } from "react-native-paper";
 import { StatusBar } from "react-native";
 
@@ -14,15 +15,19 @@ export default function RootLayout() {
 
   return (
     <AuthProvider2>
-      <ThemeCtx.Provider value={{ dark, toggle }}>
-        <PaperProvider theme={theme}>
-          <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" /> {/* tabs are now wrapped by drawer inside their own _layout */}
-          </Stack>
-        </PaperProvider>
-      </ThemeCtx.Provider>
+      {/* 🟢 2. Add NotificationProvider inside AuthProvider */}
+      <NotificationProvider>
+        <ThemeCtx.Provider value={{ dark, toggle }}>
+          <PaperProvider theme={theme}>
+            <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              {/* নিশ্চিত করুন notification পেজটি যেন Stack এ থাকে, অথবা অটোমেটিক পেয়ে যাবে */}
+            </Stack>
+          </PaperProvider>
+        </ThemeCtx.Provider>
+      </NotificationProvider>
     </AuthProvider2>
   );
 }

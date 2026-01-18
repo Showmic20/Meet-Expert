@@ -34,6 +34,8 @@ import { useAuth } from "../../lib/AuthProvid";
 import { supabase } from "../../lib/superbase";
 // 🟢 Payment Modal Import (Make sure this path is correct)
 import PaymentModal from "../../../component/PaymentModal";
+// 🟢 Rank Modal Import (পাথ চেক করে নেবেন)
+import RankModal from "../../../component/RankModal";
 
 // ─── TYPES ───────────────────────────────────────
 export type DBUser = {
@@ -53,7 +55,7 @@ export type DBUser = {
   rank?: string;
   chat_subscription_bdt?: number;
   location?: string;
-  availability?: string | null; // 🟢 ADDED: Availability field
+  availability?: string | null; 
   [key: string]: any;
 };
 
@@ -110,6 +112,9 @@ export default function ProfileScreen() {
   // 🟢 Payment Logic States
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<{mins: number, price: number, plan: string} | null>(null);
+
+  // 🟢 Rank Modal State
+  const [showRankModal, setShowRankModal] = useState(false);
 
   // Custom Plan UI States
   const [duration, setDuration] = useState(30); 
@@ -218,7 +223,7 @@ export default function ProfileScreen() {
         expert_id: userId,
         plan: pendingRequest.plan,
         status: 'pending', 
-        // transaction_id: tranId, // Uncomment if column exists
+        // transaction_id: tranId, 
       });
 
       if (error) throw error;
@@ -229,8 +234,17 @@ export default function ProfileScreen() {
       setIsCustomizing(false);
 
     } catch (e: any) {
-      console.error(e);
-      Alert.alert("Error", "Payment successful but request failed.");
+      console.error("Chat Request Error:", e);
+
+      // 🟢 FIX: ডুপ্লিকেট রিকোয়েস্ট এরর হ্যান্ডলিং (Code 23505)
+      if (e.code === '23505') {
+          Alert.alert("Request Already Sent", "You already have a pending request with this expert.");
+          setPaymentOpen(false);
+          setPendingRequest(null);
+          setIsCustomizing(false);
+      } else {
+          Alert.alert("Error", "Payment successful but request failed to save.");
+      }
     } finally {
       setLoading(false);
     }
@@ -265,11 +279,11 @@ export default function ProfileScreen() {
                 <Text style={styles.occupationText}>{profession} {company ? `at ${company}` : ""}</Text>
                 <View style={styles.locationRow}><Icon source="map-marker-outline" size={14} color="gray" /><Text style={styles.locationText}>{location}</Text></View>
                 
-                {/* 🟢 MODIFIED: Edit Profile Button added here */}
+                {/* Edit Profile Button */}
                 {viewingSelf ? (
                     <Button 
                         mode="outlined" 
-                        onPress={() => router.push('/edit-profile')} // Link to the new page
+                        onPress={() => router.push('/edit-profile')} 
                         style={{ marginTop: 15, borderRadius: 20, borderColor: '#2196F3', borderWidth: 1 }}
                         textColor="#2196F3"
                         icon="account-edit"
@@ -284,6 +298,7 @@ export default function ProfileScreen() {
             </View>
           </View>
           <Divider style={{ height: 1, backgroundColor: '#f0f0f0', marginVertical: 10 }} />
+          
           {/* STATS */}
           <View style={styles.statsContainer}>
             <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => user?.id && router.push(`/reviews/${user.id}`)}>
@@ -291,17 +306,26 @@ export default function ProfileScreen() {
                 <Text style={styles.statValue}>{user?.rating ? user.rating.toFixed(1) : "0.0"}</Text>
                 <Text style={styles.statSub}>({user?.total_reviews || 0} Reviews)</Text>
             </TouchableOpacity>
-            <View style={styles.statCard}>
+            
+            {/* 🟢 Rank Card with Modal Trigger */}
+            <TouchableOpacity 
+                style={styles.statCard} 
+                onPress={() => setShowRankModal(true)} // Open Rank Modal
+            >
                 <View style={styles.statHeader}><Text style={styles.statTitle}>Rank</Text></View>
-                <View style={{marginTop: 15, alignItems: 'center'}}><Icon source="trophy" size={24} color="#FFD700" /><Text style={styles.statValueLabel}>{rank}</Text></View>
-            </View>
+                <View style={{marginTop: 15, alignItems: 'center'}}>
+                    <Icon source="trophy" size={24} color="#FFD700" />
+                    <Text style={styles.statValueLabel}>{rank}</Text>
+                </View>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.statCard} onPress={!viewingSelf ? () => setChatOpen(true) : undefined}>
                 <View style={styles.statHeader}><Text style={styles.statTitle}>Chat</Text></View>
                 <View style={{marginTop: 15, alignItems: 'center'}}><Icon source="message-text-outline" size={24} color="#6A1B9A" /><Text style={styles.statValueLabel}>{formatCoins(hourlyRate)}/hr</Text></View>
             </TouchableOpacity>
           </View>
 
-          {/* 🟢 NEW SECTION: AVAILABILITY */}
+          {/* AVAILABILITY */}
           <View style={styles.contentSection}>
              {user?.availability ? (
                 <View style={styles.availabilityContainer}>
@@ -336,7 +360,14 @@ export default function ProfileScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* 🟢 MODAL SYSTEM */}
+      {/* 🟢 RANK MODAL */}
+      <RankModal 
+        visible={showRankModal} 
+        onClose={() => setShowRankModal(false)} 
+        currentScore={340} // ইউজার স্কোর এখানে ডায়নামিক করতে পারেন (যেমন: user.total_reviews * 10)
+      />
+
+      {/* 🟢 MODAL SYSTEM (Chat) */}
       <Portal>
         <Modal 
             visible={chatOpen} 
@@ -345,7 +376,7 @@ export default function ProfileScreen() {
         >
           
           {isCustomizing ? (
-            /* 🟢 CUSTOMIZE PLAN UI */
+            /* CUSTOMIZE PLAN UI */
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
                 <View style={styles.customHeader}>
                     <TouchableOpacity onPress={() => setIsCustomizing(false)}><Icon source="chevron-left" size={28} color="#000" /></TouchableOpacity>
@@ -445,7 +476,7 @@ export default function ProfileScreen() {
                 </View>
             </KeyboardAvoidingView>
           ) : (
-            /* 🟢 PACKAGES UI */
+            /* PACKAGES UI */
             <View>
                 <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Packages</Text>
@@ -484,7 +515,7 @@ export default function ProfileScreen() {
         </Modal>
       </Portal>
 
-      {/* 🟢 Payment Gateway Modal */}
+      {/* Payment Gateway Modal */}
       {pendingRequest && (
         <PaymentModal 
           visible={paymentOpen}
@@ -542,7 +573,7 @@ const styles = StyleSheet.create({
   skillsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   skillChip: { backgroundColor: '#f0f0f0' },
   
-  // 🟢 NEW STYLES: Availability
+  // Availability Styles
   availabilityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -574,7 +605,7 @@ const styles = StyleSheet.create({
     color: '#0D47A1',
   },
 
-  // 🟢 MODALS
+  // MODALS
   modalContainer: { marginHorizontal: 15, backgroundColor: "white", padding: 15, borderRadius: 16, width: '92%', alignSelf: 'center', maxWidth: 400 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: "bold", color: '#333' },
@@ -590,7 +621,7 @@ const styles = StyleSheet.create({
   featureText: { fontSize: 8, color: '#444' },
   payButton: { paddingVertical: 6, width: '100%', alignItems: 'center', borderRadius: 20 },
 
-  // 🟢 CUSTOM PLAN STYLES
+  // CUSTOM PLAN STYLES
   customModalContainer: { margin: 0, backgroundColor: "white", padding: 20, paddingTop: 40, height: '100%', width: '100%', borderRadius: 0 },
   customHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, marginTop: 10 },
   customTitle: { fontSize: 18, fontWeight: 'bold', color: '#000' },
@@ -621,7 +652,7 @@ const styles = StyleSheet.create({
   calDayText: { fontSize: 14, color: '#333' },
   calDayTextActive: { color: '#1565C0', fontWeight: 'bold' },
   
-  // 🟢 Fixed Time Picker Styles
+  // Fixed Time Picker Styles
   timePickerContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 15, marginTop: 5, marginBottom: 30 },
   timeInputBox: { borderBottomWidth: 2, borderBottomColor: '#ddd', width: 80, alignItems: 'center', paddingBottom: 5 },
   timeInput: { fontSize: 32, fontWeight: 'bold', color: '#000', textAlign: 'center', width: '100%', padding: 0 },

@@ -11,7 +11,8 @@ import {
   Modal,
   FAB,
   IconButton,
-  useTheme
+  useTheme,
+  Badge // 🟢 Added Badge for notification count
 } from "react-native-paper";
 import { useNavigation, DrawerActions } from "@react-navigation/native"; 
 import { SafeAreaView } from "react-native-safe-area-context"; 
@@ -20,6 +21,8 @@ import { router } from "expo-router";
 
 import WalletChip from "../../../component/Walletchip"; 
 import { useAuth } from "../../lib/AuthProvid"; 
+// 🟢 Import Notification Hook
+import { useNotifications } from "../../lib/NotificationProvider";
 
 // ───────────────────────────────────────────────────────────────────────────────
 // Types
@@ -50,9 +53,12 @@ const PAGE_SIZE = 20;
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { session } = useAuth();
-  const theme = useTheme(); // থিম হুক অ্যাড করা হয়েছে
+  const theme = useTheme();
+  
+  // 🟢 Get Notification Data
+  const { unreadCount } = useNotifications();
 
-  // 🟢 1. ডিফল্ট হেডার হাইড করার লজিক
+  // 🟢 1. Hide Default Header
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false, 
@@ -185,7 +191,6 @@ export default function HomeScreen() {
     );
   }, []);
 
-  // 🟢 এখানেই পরিবর্তন করা হয়েছে: কার্ডে onPress ইভেন্ট যোগ করা হয়েছে
   const renderEventItem = useCallback(({ item, index }: { item: EventItem; index: number }) => {
     const start = new Date(item.start_at);
     const isEven = index % 2 === 0;
@@ -194,7 +199,6 @@ export default function HomeScreen() {
     return (
       <Card 
         style={[styles.eventCard, { backgroundColor: cardColor }]}
-        // 👇 এই লাইনটি নতুন ইভেন্ট ডিটেইলস পেজে নিয়ে যাবে
         onPress={() => router.push({ pathname: "/event/[id]", params: { id: item.id } })}
       >
         <View style={styles.eventCardInner}>
@@ -222,16 +226,6 @@ export default function HomeScreen() {
   }, []);
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Create Event Logic
-  // ────────────────────────────────────────────────────────────────────────────
-  const [createOpen, setCreateOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  // const [location, setLocation] = useState(""); // এখানে কনফ্লিক্ট এড়াতে কমেন্ট আউট করা হলো, কারণ নিচে আবার state আছে
-  // ... বাকি লজিক ...
-  // নোট: যেহেতু আপনি আলাদা পেজ CreateEvent ব্যবহার করছেন, তাই এখানের লোকাল createOpen/handleCreate লজিকটি আর দরকার নাও হতে পারে।
-  // তবে আমি আপনার কোড অপরিবর্তিত রেখেছি।
-
-  // ────────────────────────────────────────────────────────────────────────────
   // Page Structure
   // ────────────────────────────────────────────────────────────────────────────
 
@@ -249,9 +243,22 @@ export default function HomeScreen() {
         <View style={styles.headerRight}>
             <WalletChip /> 
 
+            {/* 🟢 Notification Bell with Count */}
             <View style={styles.iconButton}>
-                <IconButton icon="bell-outline" size={24} iconColor="#333" />
-                <View style={styles.redDot} />
+                <IconButton 
+                    icon="bell-outline" 
+                    size={24} 
+                    iconColor="#333" 
+                    onPress={() => router.push('/notifications')} // Navigate to notification screen
+                />
+                {unreadCount > 0 && (
+                    <Badge 
+                        size={16} 
+                        style={{ position: 'absolute', top: 5, right: 5, backgroundColor: 'red' }}
+                    >
+                        {unreadCount}
+                    </Badge>
+                )}
             </View>
 
             <TouchableOpacity onPress={() => router.push('/(drawer)/(tabs)/profile')}>
@@ -311,11 +318,8 @@ export default function HomeScreen() {
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         color={theme.colors.onPrimary}
-        // 🟢 এই লাইনটি আপনাকে ইভেন্ট ক্রিয়েশন পেজে নিয়ে যাবে
         onPress={() => router.push('/CreateEvent')} 
       />
-
-      {/* নিচের Portal/Modal অংশটি এখন আর দরকার নেই যদি আপনি নতুন পেজ ব্যবহার করেন, তবে আমি রেখে দিলাম */}
    
     </SafeAreaView>
   );
@@ -351,6 +355,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 5
   },
+  // redDot removed in favor of Paper Badge, keeping style just in case of revert
   redDot: {
     position: 'absolute',
     top: 10,
