@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState, useLayoutEffect } from "react";
 import { View, StyleSheet, FlatList, RefreshControl, Text, TouchableOpacity, Alert } from "react-native";
+import { ImageBackground } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Card,
   Avatar,
@@ -115,7 +117,7 @@ export default function HomeScreen() {
 
       const from = pageIndex * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-
+      console.log(`📡 Fetching events from ${from} to ${to}...`);
       let q = supabase
         .from("events")
         .select("*", { count: "exact" })
@@ -127,7 +129,15 @@ export default function HomeScreen() {
       }
 
       const { data, error } = await q;
-      if (error) throw error;
+if (error) {
+         console.error("❌ Supabase Error:", error); // 🟢 লগ ২: এরর চেক
+         throw error;
+      }
+
+      // 🟢 লগ ৩: ডাটা ঠিকমতো আসছে কি না এবং কলামের নাম কী
+      console.log("✅ Fetched Data:", JSON.stringify(data, null, 2));
+
+     // if (error) throw error;
 
       const rows = (data ?? []) as EventItem[];
       setEventsHasMore(rows.length === PAGE_SIZE);
@@ -193,39 +203,68 @@ export default function HomeScreen() {
     );
   }, []);
 
-  const renderEventItem = useCallback(({ item, index }: { item: EventItem; index: number }) => {
-    const start = new Date(item.start_at);
-    const isEven = index % 2 === 0;
-    const cardColor = isEven ? '#6A1B9A' : '#E65100'; 
-    
-    return (
-      <Card 
-        style={[styles.eventCard, { backgroundColor: cardColor }]}
-        onPress={() => router.push({ pathname: "/event/[id]", params: { id: item.id } })}
-      >
-        <View style={styles.eventCardInner}>
-          <View style={{flex: 1}}>
-             <Text style={styles.eventTitle} numberOfLines={1}>{item.title}</Text>
-             <Text style={styles.eventSubtitle}>{start.toDateString()} • {start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
-             <View style={styles.locationRow}>
-                <Avatar.Icon size={20} icon="map-marker" color="white" style={{backgroundColor:'transparent'}} />
-                <Text style={styles.eventLocation}>{item.location || "Online"}</Text>
-             </View>
-          </View>
+const renderEventItem = useCallback(({ item, index }: { item: EventItem; index: number }) => {
+  const start = new Date(item.start_at);
+  const dateText = start.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+  const timeText = start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+  const isEven = index % 2 === 0;
+  
+  // 🎨 ডাইনামিক গ্রেডিয়েন্ট কালার সেট করা
+const gradientColors = (isEven 
+      ? ['#ac72df', '#4A00E0'] 
+      : ['#fc4a1a', '#f7b733']) as [string, string]; // Orange to Yellowish (Energetic Look)
+
+  return (
+    <Card 
+      style={styles.eventCard}
+      onPress={() => router.push(`/event/${item.id}`)}
+    >
+      <View style={styles.cardWrapper}>
+        
+        {/* ✅ ইমেজের বদলে সরাসরি LinearGradient ব্যবহার */}
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }} // কোণা থেকে শুরু (Top-Left)
+          end={{ x: 1, y: 1 }}   // কোণায় শেষ (Bottom-Right)
+          style={styles.gradientBg}
+        >
           
-          <Button 
-            mode="contained" 
-            onPress={() => console.log('Join Event')} 
-            buttonColor="rgba(255,255,255,0.2)"
-            compact
-            labelStyle={{ fontSize: 12 }}
-          >
-            Join
-          </Button>
-        </View>
-      </Card>
-    );
-  }, []);
+          <View style={styles.eventCardInner}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+                <Text style={styles.eventTitle} numberOfLines={2}>
+                  {item.title || "Untitled Event"} 
+                </Text>
+                
+                <Text style={styles.eventSubtitle}>
+                  {dateText} • {timeText}
+                </Text>
+                
+                <View style={styles.locationRow}>
+               
+                  <Text style={styles.eventLocation} numberOfLines={1}>
+                    {item.location || "Online"}
+                  </Text>
+                </View>
+            </View>
+            
+            <View pointerEvents="none">
+              <Button 
+                mode="contained" 
+                buttonColor="rgba(255,255,255,0.2)" // গ্লাস ইফেক্ট বাটন
+                compact
+                labelStyle={{ fontSize: 11, fontWeight: 'bold', color: 'white' }}
+              >
+                Join
+              </Button>
+            </View>
+          </View>
+
+        </LinearGradient>
+      </View>
+    </Card>
+  );
+}, []);
 
   // ────────────────────────────────────────────────────────────────────────────
   // Page Structure
@@ -291,7 +330,7 @@ export default function HomeScreen() {
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item.id}
         renderItem={renderExpertItem}
-        contentContainerStyle={styles.horizontalListContent}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
 
       <View style={[styles.sectionHeader, { marginTop: 20 }]}>
@@ -404,14 +443,16 @@ const styles = StyleSheet.create({
   horizontalListContent: {
     paddingHorizontal: 16,
     paddingBottom: 10,
+    paddingLeft:10
   },
   mainScrollContent: {
     paddingBottom: 20,
+    paddingLeft:8
   },
 
   // Expert Card
   cardHorizontal: {
-    backgroundColor: '#fff',
+    backgroundColor: '#e2dddd',
     width: 160,
     height: 210,
     borderRadius: 16,
@@ -434,7 +475,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#bee3fd',
     paddingVertical: 8,
     paddingHorizontal: 10,
     height: 40,
@@ -447,38 +488,69 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 12, fontWeight: 'bold', color: '#444' },
 
   // Event Card
-  eventCard: {
+// styles এর ভেতরে
+eventCard: {
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
     borderRadius: 16,
     elevation: 4,
-    height: 110, 
+    minHeight: 100, // হাইট একটু বাড়ানো হলো যাতে ছবি সুন্দর দেখায়
+    backgroundColor: 'white', 
   },
-  eventCardInner: {
+  gradientBg: {
+    width: '100%',
+    paddingVertical: 5, // একটু প্যাডিং উপরে নিচে
+    justifyContent: 'center',
+  },
+  bgImage: {
+    width: '100%',
+    height: 150, // ✅ 100% এর বদলে ফিক্সড হাইট (যাতে সব কার্ড সমান হয়)
+    justifyContent: 'flex-end', 
+  },
+  // নতুন স্টাইল ১: কর্নার ঠিক রাখার জন্য
+  cardWrapper: {
+    borderRadius: 16,
+    overflow: 'hidden', // এটি না দিলে ছবির কোণাগুলো কার্ডের বাইরে চলে যাবে
+  },
+ darkOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)', // ৪৫% কালো শেড
+    justifyContent: 'center', // কন্টেন্ট মাঝখানে বা সাজিয়ে রাখার জন্য
+  },
+
+  eventCardInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16, // প্যাডিং একটু বাড়ানো হলো
   },
+  
   eventTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 4,
-  },
-  eventSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
     marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.7)', // টেক্সট শ্যাডো
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
+  
+  eventSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 2,
   },
+  
   eventLocation: {
-    color: '#ffffff',
+    color: 'rgba(255,255,255,0.9)',
     fontSize: 12,
     marginLeft: 4,
   },
