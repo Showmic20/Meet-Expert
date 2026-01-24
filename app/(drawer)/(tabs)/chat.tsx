@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, SectionList, TouchableOpacity, Alert, Image, StyleSheet, SafeAreaView, StatusBar } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState, useLayoutEffect } from "react";
+import { View, SectionList, TouchableOpacity, Alert, StyleSheet, SafeAreaView, StatusBar } from "react-native";
 import {
   ActivityIndicator,
   Avatar,
@@ -7,12 +7,15 @@ import {
   Snackbar,
   Text,
   Divider,
+  Badge
 } from "react-native-paper";
 import { supabase } from "../../lib/superbase";
 import { useAuth } from "../../lib/AuthProvid";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router"; // useNavigation added
+import { DrawerActions } from "@react-navigation/native"; // DrawerActions added
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+// Types
 type RequestRowBase = {
   id: number;
   requester_id: string;
@@ -32,6 +35,14 @@ type OutgoingRow = RequestRowBase & {
 export default function ChatsTab() {
   const { session } = useAuth();
   const me = session?.user?.id;
+  const navigation = useNavigation(); // Hook for navigation
+
+  // 🔴 FIX: Hide the default system header to prevent "Double Header"
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
 
   const [incoming, setIncoming] = useState<IncomingRow[]>([]);
   const [outgoing, setOutgoing] = useState<OutgoingRow[]>([]);
@@ -43,25 +54,17 @@ export default function ChatsTab() {
 
   const normalizePair = (a: string, b: string) => (a < b ? { a, b } : { a: b, b: a });
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SUPABASE LOGIC (Kept exactly as you had it)
+  // ─────────────────────────────────────────────────────────────────────────────
   const getOrCreateRoom = useCallback(async (u1: string, u2: string) => {
     const { a, b } = normalizePair(u1, u2);
-
     const { data: existing, error: findErr } = await supabase
-      .from("chat_rooms")
-      .select("id")
-      .eq("participant_a", a)
-      .eq("participant_b", b)
-      .maybeSingle();
-
+      .from("chat_rooms").select("id").eq("participant_a", a).eq("participant_b", b).maybeSingle();
     if (findErr) console.warn("find room error", findErr);
     if (existing) return existing.id;
-
     const { data: created, error: createErr } = await supabase
-      .from("chat_rooms")
-      .insert({ participant_a: a, participant_b: b })
-      .select("id")
-      .single();
-
+      .from("chat_rooms").insert({ participant_a: a, participant_b: b }).select("id").single();
     if (createErr) throw createErr;
     return created.id;
   }, []);
@@ -70,18 +73,9 @@ export default function ChatsTab() {
     if (!me) return;
     const { data, error } = await supabase
       .from("chat_requests")
-      .select(`
-        id, requester_id, expert_id, plan, status, room_id, created_at,
-        requester:requester_id ( first_name, last_name, profile_picture_url )
-      `)
-      .eq("expert_id", me)
-      .in("status", ["pending", "accepted"])
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.warn("fetchIncoming error", error);
-      return;
-    }
+      .select(`id, requester_id, expert_id, plan, status, room_id, created_at, requester:requester_id ( first_name, last_name, profile_picture_url )`)
+      .eq("expert_id", me).in("status", ["pending", "accepted"]).order("created_at", { ascending: false });
+    if (error) { console.warn("fetchIncoming error", error); return; }
     setIncoming((data ?? []) as any);
   }, [me]);
 
@@ -89,18 +83,9 @@ export default function ChatsTab() {
     if (!me) return;
     const { data, error } = await supabase
       .from("chat_requests")
-      .select(`
-        id, requester_id, expert_id, plan, status, room_id, created_at,
-        expert:expert_id ( first_name, last_name, profile_picture_url )
-      `)
-      .eq("requester_id", me) // ← requester is me
-      .in("status", ["pending", "accepted"])
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.warn("fetchOutgoing error", error);
-      return;
-    }
+      .select(`id, requester_id, expert_id, plan, status, room_id, created_at, expert:expert_id ( first_name, last_name, profile_picture_url )`)
+      .eq("requester_id", me).in("status", ["pending", "accepted"]).order("created_at", { ascending: false });
+    if (error) { console.warn("fetchOutgoing error", error); return; }
     setOutgoing((data ?? []) as any);
   }, [me]);
 
@@ -113,76 +98,44 @@ export default function ChatsTab() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // realtime for incoming (as expert)
+  // Realtime subscriptions
   useEffect(() => {
     if (!me) return;
-    const chIn = supabase
-      .channel(`chat-requests-in-${me}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "chat_requests", filter: `expert_id=eq.${me}` },
-        fetchIncoming
-      )
+    const chIn = supabase.channel(`chat-requests-in-${me}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_requests", filter: `expert_id=eq.${me}` }, fetchIncoming)
       .subscribe();
     return () => { supabase.removeChannel(chIn); };
   }, [me, fetchIncoming]);
 
-  // realtime for outgoing (as requester)
   useEffect(() => {
     if (!me) return;
-    const chOut = supabase
-      .channel(`chat-requests-out-${me}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "chat_requests", filter: `requester_id=eq.${me}` },
-        fetchOutgoing
-      )
+    const chOut = supabase.channel(`chat-requests-out-${me}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_requests", filter: `requester_id=eq.${me}` }, fetchOutgoing)
       .subscribe();
     return () => { supabase.removeChannel(chOut); };
   }, [me, fetchOutgoing]);
 
-  const acceptRequest = useCallback(
-    async (row: IncomingRow) => {
-      try {
-        if (!me) return;
-        setBusyId(row.id);
-        const roomId = await getOrCreateRoom(me, row.requester_id);
-        const { error } = await supabase
-          .from("chat_requests")
-          .update({ status: "accepted", room_id: roomId })
-          .eq("id", row.id);
-        if (error) throw error;
-        showSnack("Request accepted");
-        router.push({ pathname: "/chats/[id]", params: { id: roomId } });
-      } catch (e) {
-        console.warn("accept error", e);
-        Alert.alert("Error", "Could not accept request.");
-      } finally {
-        setBusyId(null);
-      }
-    },
-    [me, getOrCreateRoom]
-  );
+  // Actions
+  const acceptRequest = useCallback(async (row: IncomingRow) => {
+    try {
+      if (!me) return;
+      setBusyId(row.id);
+      const roomId = await getOrCreateRoom(me, row.requester_id);
+      const { error } = await supabase.from("chat_requests").update({ status: "accepted", room_id: roomId }).eq("id", row.id);
+      if (error) throw error;
+      showSnack("Request accepted");
+      router.push({ pathname: "/chats/[id]", params: { id: roomId } });
+    } catch (e) { console.warn("accept error", e); Alert.alert("Error", "Could not accept request."); } finally { setBusyId(null); }
+  }, [me, getOrCreateRoom]);
 
-  const rejectRequest = useCallback(
-    async (row: IncomingRow) => {
-      try {
-        setBusyId(row.id);
-        const { error } = await supabase
-          .from("chat_requests")
-          .update({ status: "rejected" })
-          .eq("id", row.id);
-        if (error) throw error;
-        showSnack("Request rejected");
-      } catch (e) {
-        console.warn("reject error", e);
-        Alert.alert("Error", "Could not reject request.");
-      } finally {
-        setBusyId(null);
-      }
-    },
-    []
-  );
+  const rejectRequest = useCallback(async (row: IncomingRow) => {
+    try {
+      setBusyId(row.id);
+      const { error } = await supabase.from("chat_requests").update({ status: "rejected" }).eq("id", row.id);
+      if (error) throw error;
+      showSnack("Request rejected");
+    } catch (e) { console.warn("reject error", e); Alert.alert("Error", "Could not reject request."); } finally { setBusyId(null); }
+  }, []);
 
   const onCardPress = useCallback((row: RequestRowBase) => {
     if (row.status === "accepted" && row.room_id) {
@@ -192,13 +145,10 @@ export default function ChatsTab() {
     }
   }, []);
 
-  const sections = useMemo(
-    () => [
-      { title: "Incoming", data: incoming as RequestRowBase[], kind: "incoming" as const },
-      { title: "Outgoing", data: outgoing as RequestRowBase[], kind: "outgoing" as const },
-    ],
-    [incoming, outgoing]
-  );
+  const sections = useMemo(() => [
+    { title: "Incoming", data: incoming as RequestRowBase[], kind: "incoming" as const },
+    { title: "Outgoing", data: outgoing as RequestRowBase[], kind: "outgoing" as const },
+  ], [incoming, outgoing]);
 
   if (!me) return <View style={styles.centerContainer}><Text>Sign in</Text></View>;
   if (loading) return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#000" /></View>;
@@ -207,27 +157,45 @@ export default function ChatsTab() {
   // UI COMPONENTS
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // 1. Top Header mimicking the image
+  // 🟢 1. HEADER (Updated to match Home Screen)
   const ChatHeader = () => (
     <View style={styles.headerContainer}>
-      <Text style={styles.headerTitle}>Chats</Text>
-      <View style={styles.headerIcons}>
-        <View style={styles.iconWrapper}>
-            <MaterialCommunityIcons name="database" size={20} color="#FFA500" />
-        </View>
-        <TouchableOpacity style={{marginLeft: 15}}>
-             <MaterialCommunityIcons name="bell-outline" size={24} color="#5C6BC0" />
+      {/* Left: Menu Icon + Title */}
+      <View style={styles.headerLeft}>
+        <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+           <IconButton icon="menu" size={28} iconColor="#333" style={{ margin: 0, marginLeft: -8 }} />
         </TouchableOpacity>
-        <TouchableOpacity style={{marginLeft: 15}}>
-             <Avatar.Image size={30} source={{uri: 'https://i.pravatar.cc/100'}} /> 
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Chats</Text>
+      </View>
+
+      {/* Right: Wallet + Bell + Avatar */}
+      <View style={styles.headerRight}>
+         
+         {/* Wallet Chip (Visual only) */}
+         <View style={styles.walletChip}>
+            <MaterialCommunityIcons name="database" size={16} color="#F57C00" />
+            <Text style={styles.walletText}>50</Text>
+         </View>
+
+         {/* Notification Bell */}
+         <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.iconButton}>
+             <IconButton icon="bell-outline" size={24} iconColor="#333" style={{ margin: 0 }} />
+             {/* <Badge size={16} style={styles.badge}>2</Badge> */}
+         </TouchableOpacity>
+
+         {/* Profile Avatar */}
+         <TouchableOpacity onPress={() => router.push('/profile')}>
+             <Avatar.Image 
+                size={34} 
+                source={{ uri: session?.user?.user_metadata?.avatar_url || 'https://i.pravatar.cc/150?img=12' }} 
+             />
+         </TouchableOpacity>
       </View>
     </View>
   );
 
-  // 2. Banner for "Chat Requests" (Gray Box)
+  // 2. Banner for "Chat Requests"
   const RequestsBanner = () => {
-    // Filter only pending incoming for the banner count/visuals
     const pendingReqs = incoming.filter(i => i.status === 'pending');
     if (pendingReqs.length === 0) return null;
 
@@ -240,7 +208,7 @@ export default function ChatsTab() {
                 key={req.id} 
                 size={30} 
                 source={{uri: req.requester?.profile_picture_url || "https://via.placeholder.com/150"}}
-                style={[styles.pileAvatar, { right: index * 18, zIndex: 10 - index }]} // Overlap logic
+                style={[styles.pileAvatar, { right: index * 18, zIndex: 10 - index }]}
              />
           ))}
           {pendingReqs.length > 0 && (
@@ -255,6 +223,7 @@ export default function ChatsTab() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       
+      {/* 🟢 Call the New Header */}
       <ChatHeader />
 
       <SectionList
@@ -262,10 +231,8 @@ export default function ChatsTab() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={<RequestsBanner />}
-        stickySectionHeadersEnabled={false} // Disable sticky to match flat look
+        stickySectionHeadersEnabled={false}
         renderSectionHeader={({ section }) => {
-            // Optional: Hide textual headers if you only want the banner, 
-            // or keep them subtle.
             if(section.data.length === 0) return null;
             return <Text style={styles.sectionHeader}>{section.title}</Text>;
         }}
@@ -273,28 +240,21 @@ export default function ChatsTab() {
         renderItem={({ item, section }) => {
           const isIncoming = section.kind === "incoming";
           const rowData = isIncoming ? (item as IncomingRow) : (item as OutgoingRow);
-          
           const person = isIncoming ? (rowData as IncomingRow).requester : (rowData as OutgoingRow).expert;
           const name = person ? `${person.first_name} ${person.last_name}`.trim() : "Unknown User";
           const avatarUri = person?.profile_picture_url || "https://i.pravatar.cc/150?img=12";
-          
-          // Mimic "I have done this" or Last message style
           const subText = item.status === 'accepted' ? "Tap to chat" : `Plan: ${item.plan || '-'} min`;
           const time = new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
           const isAccepted = item.status === 'accepted';
           const isPending = item.status === 'pending';
 
           return (
             <TouchableOpacity onPress={() => onCardPress(item)} activeOpacity={0.7} style={styles.rowItem}>
-              {/* Avatar Section */}
               <View style={styles.avatarContainer}>
                 <Avatar.Image size={55} source={{ uri: avatarUri }} />
-                {/* Green Dot for Accepted (Online simulation) */}
                 {isAccepted && <View style={styles.onlineDot} />}
               </View>
 
-              {/* Text Section */}
               <View style={styles.textContainer}>
                 <Text style={styles.nameText} numberOfLines={1}>{name}</Text>
                 <Text style={styles.messageText} numberOfLines={1}>
@@ -302,26 +262,13 @@ export default function ChatsTab() {
                 </Text>
               </View>
 
-              {/* Right Side: Time or Actions */}
               <View style={styles.rightContainer}>
                 {isIncoming && isPending ? (
-                    // Actions for Pending Requests (Inline to keep list clean)
                     <View style={{flexDirection: 'row'}}>
-                        <IconButton 
-                            icon="check" size={20} 
-                            containerColor="#E8F5E9" iconColor="#4CAF50"
-                            onPress={() => acceptRequest(rowData as IncomingRow)} 
-                            disabled={busyId === item.id}
-                        />
-                         <IconButton 
-                            icon="close" size={20} 
-                            containerColor="#FFEBEE" iconColor="#F44336"
-                            onPress={() => rejectRequest(rowData as IncomingRow)} 
-                            disabled={busyId === item.id}
-                        />
+                        <IconButton icon="check" size={20} containerColor="#E8F5E9" iconColor="#4CAF50" onPress={() => acceptRequest(rowData as IncomingRow)} disabled={busyId === item.id} />
+                        <IconButton icon="close" size={20} containerColor="#FFEBEE" iconColor="#F44336" onPress={() => rejectRequest(rowData as IncomingRow)} disabled={busyId === item.id} />
                     </View>
                 ) : (
-                    // Normal Chat View
                     <Text style={styles.timeText}>{time}</Text>
                 )}
               </View>
@@ -339,7 +286,7 @@ export default function ChatsTab() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STYLES
+// STYLES (Updated Header Styles)
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
@@ -351,31 +298,63 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Header
+  
+  // 🟢 Updated Header Styles
   headerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#fff',
+    alignItems: 'center',
+    paddingHorizontal: 16, // Adjusted to match Home
+    paddingVertical: 12,
+    backgroundColor: 'white',
+    // borderBottomWidth: 1, // Optional: if you want a line
+    // borderBottomColor: '#f0f0f0',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000',
+    marginLeft: 0,
   },
-  headerIcons: {
+  // Wallet Chip Style
+  walletChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFF8E1', 
+    borderColor: '#FFD54F',
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginRight: 4,
   },
-  iconWrapper: {
-     // Optional: mimic the coin stack icon background if needed
+  walletText: {
+    fontWeight: 'bold',
+    color: '#F57C00',
+    marginLeft: 4,
+    fontSize: 14,
+  },
+  iconButton: {
+    position: 'relative',
+    marginRight: 5,
+  },
+  badge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
   },
 
   // Banner
   bannerContainer: {
-    backgroundColor: '#E0E0E0', // Gray color from image
+    backgroundColor: '#E0E0E0', 
     borderRadius: 15,
     marginHorizontal: 16,
     marginBottom: 10,
@@ -401,7 +380,7 @@ const styles = StyleSheet.create({
   pileAvatar: {
     position: 'absolute',
     borderWidth: 2,
-    borderColor: '#E0E0E0', // Blend with background
+    borderColor: '#E0E0E0', 
   },
 
   // List
@@ -426,7 +405,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F0F0F0',
-    marginLeft: 80, // Indent divider to align with text
+    marginLeft: 80, 
   },
   
   // Row Parts
@@ -438,7 +417,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#4CAF50', // Green dot
+    backgroundColor: '#4CAF50', 
     position: 'absolute',
     bottom: 0,
     right: 0,

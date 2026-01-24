@@ -21,7 +21,7 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 // ==========================================
 // CONFIGURATION
 // ==========================================
-const GEMINI_API_KEY = 'AIzaSyDmk_zKVUqSSLonQUTZjTl8frJgPC3c1C8'; 
+const GEMINI_API_KEY = 'AIzaSyAm2NEBXl6Uyl-Y8IyhiqWr1MdLZaxgeLA'; 
 const MODEL_NAME = 'gemini-2.5-flash';
 
 // ==========================================
@@ -47,7 +47,7 @@ const ChatScreen = () => {
     { 
       id: '1', 
       sender: 'ai', 
-      text: 'Hello! I am powered by Google Gemini. Ask me anything!' 
+      text: 'Hello! Share your problme with me, I will help you!' 
     }
   ]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -74,11 +74,7 @@ const ChatScreen = () => {
         // অথবা স্ক্রিনে একটি অ্যালার্ট দেখাবে (যেকোনো একটি মডেলের নাম)
         if (data.models) {
           const validModel = data.models.find((m:any) => m.name.includes('gemini'));
-          if (validModel) {
-            Alert.alert("Success!", `Your valid model name is: \n${validModel.name}`);
-            // নামটিতে সাধারণত 'models/' থাকে, তাই সেটি বাদ দিয়ে ব্যবহার করতে হবে
-            // উদাহরণ: 'models/gemini-1.5-flash' -> ব্যবহার করবেন 'gemini-1.5-flash'
-          }
+         
         }
       } catch (error) {
         console.error("Model Check Error:", error);
@@ -120,7 +116,8 @@ const handleSend = async () => {
                 2. Use Markdown formatting (Bold, Bullet points, Code blocks) nicely.
                 3. Do not give short one-line answers unless asked. 
                 4. If the user asks for code, explain the code logic after providing it.
-                5. Be friendly, empathetic, and professional.`
+                5. Be friendly, empathetic, and professional.
+                6. Always discuss about career, I any ask about other things always say that, I'm only for career guidelines`
               }
             },
             contents: apiHistory,
@@ -206,7 +203,7 @@ const handleSend = async () => {
           <MaterialCommunityIcons name="robot-excited" size={24} color="#FFF" />
         </View>
         <View>
-          <Text style={styles.headerTitle}>Gemini Chat</Text>
+          <Text style={styles.headerTitle}>Meet Ai</Text>
           <Text style={styles.headerSubtitle}>Powered by Google AI</Text>
         </View>
       </View>

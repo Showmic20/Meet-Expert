@@ -356,13 +356,13 @@ const gradientColors = (isEven
       />
       <FAB
         icon="robot"
-        label="AI Help" // চাইলে শুধু আইকন রাখতে label মুছে দিন
+        label="Meet AI" // চাইলে শুধু আইকন রাখতে label মুছে দিন
         style={{
           position: 'absolute',
           margin: 16,
           right: 0,
           bottom: 90, // 👈 বিদ্যমান FAB এর উপরে দেখাবে
-          backgroundColor: '#6200ea', // আলাদা রং যাতে চোখে পড়ে
+          backgroundColor: '#254612', // আলাদা রং যাতে চোখে পড়ে
         }}
         color="white"
         onPress={() => router.push('/ai-chat')}
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   },
   mainScrollContent: {
     paddingBottom: 20,
-    paddingLeft:8
+    paddingLeft:7
   },
 
   // Expert Card
