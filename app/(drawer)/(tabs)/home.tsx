@@ -315,7 +315,19 @@ export default function HomeScreen() {
           eventsLoading ? <ActivityIndicator style={{ margin: 20 }} /> : <View style={{height: 80}} />
         }
       />
-
+      <FAB
+        icon="robot"
+        label="AI Help" // চাইলে শুধু আইকন রাখতে label মুছে দিন
+        style={{
+          position: 'absolute',
+          margin: 16,
+          right: 0,
+          bottom: 90, // 👈 বিদ্যমান FAB এর উপরে দেখাবে
+          backgroundColor: '#6200ea', // আলাদা রং যাতে চোখে পড়ে
+        }}
+        color="white"
+        onPress={() => router.push('/ai-chat')}
+      />
       <FAB
         icon="plus"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
