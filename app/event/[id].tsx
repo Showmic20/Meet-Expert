@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ImageBackground, Dimensions } from 'react-native';
-import { Text, Button, Avatar, useTheme, ActivityIndicator, IconButton, Divider, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { Text, Button, Avatar, useTheme, ActivityIndicator, Divider, Surface } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { supabase } from '../../app/lib/superbase'; // পাথ চেক করুন
+import { supabase } from '../../app/lib/superbase'; 
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient'; // ✅ ১. ইমপোর্ট
 
 const { width } = Dimensions.get('window');
 
 export default function EventDetailsScreen() {
-  const { id } = useLocalSearchParams(); // URL থেকে ID নেওয়া
+  const { id } = useLocalSearchParams(); 
   const theme = useTheme();
   const router = useRouter();
   
@@ -18,12 +18,11 @@ export default function EventDetailsScreen() {
   const [creator, setCreator] = useState<any>(null);
 
   useEffect(() => {
-    fetchEventDetails();
+    if(id) fetchEventDetails();
   }, [id]);
 
   const fetchEventDetails = async () => {
     try {
-      // ১. ইভেন্ট ডেটা আনা
       const { data: eventData, error } = await supabase
         .from('events')
         .select('*')
@@ -33,11 +32,10 @@ export default function EventDetailsScreen() {
       if (error) throw error;
       setEvent(eventData);
 
-      // ২. ক্রিয়েটর ইনফো আনা (অপশনাল, যদি ইউজার টেবিল থাকে)
       if (eventData.creator_id) {
         const { data: userData } = await supabase
-          .from('users') // অথবা 'profiles'
-          .select('first_name, last_name, profile_picture_url') // আপনার টেবিল কলাম অনুযায়ী
+          .from('users') 
+          .select('first_name, last_name, profile_picture_url')
           .eq('id', eventData.creator_id)
           .single();
         setCreator(userData);
@@ -48,6 +46,20 @@ export default function EventDetailsScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ✅ ২. গ্রেডিয়েন্ট লজিক (ID এর শেষ অক্ষর চেক করে কালার ঠিক করা)
+  // এটি নিশ্চিত করে যে একই ইভেন্ট সবসময় একই কালার দেখাবে
+  const getGradientColors = () => {
+    if (!id) return ['#8E2DE2', '#4A00E0']; // ডিফল্ট (Purple)
+    
+    // ID এর শেষ অক্ষরটি নিই এবং তার কোড বের করি
+    const lastChar = String(id).slice(-1).charCodeAt(0);
+    const isEven = lastChar % 2 === 0;
+
+    return isEven 
+      ? ['#8E2DE2', '#4A00E0']  // Purple (জোড় হলে)
+      : ['#fc4a1a', '#f7b733']; // Orange (বিজোড় হলে)
   };
 
   if (loading) {
@@ -66,191 +78,214 @@ export default function EventDetailsScreen() {
     );
   }
 
-  // তারিখ ফরম্যাট করা
   const eventDate = new Date(event.start_at);
   const dateStr = eventDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   const timeStr = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
 
   return (
     <>
-      {/* হেডার হাইড করা কারণ আমরা কাস্টম ইমেজ হেডার ব্যবহার করব */}
       <Stack.Screen options={{ headerShown: false }} />
       
       <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} showsVerticalScrollIndicator={false}>
         
-        {/* 🟢 ১. কভার ইমেজ ও ক্লোজ বাটন */}
-        <View style={styles.imageContainer}>
-            <Image 
-                source={{ uri: event.cover_url || 'https://via.placeholder.com/400x200' }} 
-                style={styles.coverImage} 
-                resizeMode="cover"
-            />
-            {/* ওভারলে গ্রেডিয়েন্ট বা টিন্ট */}
-            <View style={styles.overlay} />
-            
-            <TouchableOpacity 
-                style={styles.closeBtn} 
-                onPress={() => router.back()}
+        {/* 🟢 ৩. ইমেজ কন্টেইনার এর বদলে গ্রেডিয়েন্ট হেডার */}
+        <View style={styles.headerContainer}>
+            <LinearGradient
+                colors={getGradientColors() as [string, string]} // টাইপ ফিক্স
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientHeader}
             >
-                <Ionicons name="close-circle" size={32} color="white" />
-            </TouchableOpacity>
+                {/* ক্লোজ বাটন */}
+                <TouchableOpacity 
+                    style={styles.closeBtn} 
+                    onPress={() => router.back()}
+                >
+                    <Ionicons name="arrow-back-circle" size={40} color="rgba(255,255,255,0.8)" />
+                </TouchableOpacity>
+
+                {/* ইভেন্ট টাইটেল হেডারের ভেতরেই দেখালে সুন্দর লাগে */}
+                <View style={styles.headerTitleArea}>
+                    <Text style={styles.bigTitle}>{event.title}</Text>
+                    <View style={styles.dateChip}>
+                        <MaterialCommunityIcons name="calendar-clock" size={16} color="white" />
+                        <Text style={styles.dateChipText}>{dateStr} • {timeStr}</Text>
+                    </View>
+                </View>
+
+            </LinearGradient>
         </View>
 
-        {/* 🟢 ২. মেইন কন্টেন্ট বডি */}
+        {/* 🟢 ৪. মেইন কন্টেন্ট বডি (সাদা অংশ) */}
         <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]}>
             
-            {/* টাইটেল এবং জয়েন বাটন */}
-            <View style={styles.headerRow}>
-                <View style={{flex: 1}}>
-                    <Text variant="headlineMedium" style={{fontWeight: 'bold', color: theme.colors.onSurface}}>{event.title}</Text>
-                    {/* একটি ছোট আইকন টাইটেলের পাশে (স্যাম্পল ইমেজের মতো) */}
-                    <MaterialCommunityIcons name="calendar-check" size={20} color={theme.colors.primary} style={{marginTop: 5}}/>
+            {/* জয়েন বাটন এবং লোকেশন */}
+            <View style={styles.actionRow}>
+                <View style={styles.locationBox}>
+                    <MaterialCommunityIcons name="map-marker" size={20} color={theme.colors.primary} />
+                    <Text style={[styles.infoText, {color: theme.colors.onSurfaceVariant}]} numberOfLines={1}>
+                        {event.location || "Online Event"}
+                    </Text>
                 </View>
+
                 <Button 
                     mode="contained" 
                     onPress={() => console.log('Join Pressed')}
-                    style={{borderRadius: 8}}
+                    style={{borderRadius: 20}}
                     contentStyle={{paddingHorizontal: 10}}
                 >
-                    Join
+                    Join Now
                 </Button>
             </View>
 
-            {/* ইনফো রো (তারিখ ও লোকেশন) */}
-            <View style={styles.infoSection}>
-                <View style={styles.infoRow}>
-                    <MaterialCommunityIcons name="calendar-blank-outline" size={20} color={theme.colors.onSurfaceVariant} />
-                    <Text style={[styles.infoText, {color: theme.colors.onSurfaceVariant}]}>{dateStr} • {timeStr}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                    <MaterialCommunityIcons name="map-marker-outline" size={20} color={theme.colors.onSurfaceVariant} />
-                    <Text style={[styles.infoText, {color: theme.colors.onSurfaceVariant}]}>{event.location}</Text>
-                </View>
-            </View>
+            <Divider style={{marginVertical: 20}} />
 
-            {/* পার্টিসিপেন্ট এবং ক্রিয়েটর সেকশন */}
+            {/* ক্রিয়েটর সেকশন */}
             <View style={styles.participantRow}>
-                <Text style={{marginRight: 10, color: theme.colors.onSurface}}>Created by:</Text>
+                <Text style={{marginRight: 10, color: theme.colors.onSurfaceVariant}}>Hosted by</Text>
                 {creator ? (
-                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                         <Avatar.Image size={30} source={{ uri: creator.profile_picture_url || 'https://via.placeholder.com/30' }} />
+                    <View style={styles.creatorChip}>
+                         <Avatar.Image size={28} source={{ uri: creator.profile_picture_url || 'https://via.placeholder.com/30' }} />
                          <Text style={{marginLeft: 8, fontWeight: 'bold', color: theme.colors.onSurface}}>{creator.first_name} {creator.last_name}</Text>
                     </View>
                 ) : (
-                    <Avatar.Icon size={30} icon="account" />
+                    <Text style={{fontWeight: 'bold'}}>Unknown Host</Text>
                 )}
             </View>
 
-            <Divider style={{marginVertical: 15}} />
-
-            {/* 🟢 ৩. ডেসক্রিপশন সেকশন */}
-            <Text variant="titleMedium" style={{fontWeight: 'bold', marginBottom: 8, color: theme.colors.onSurface}}>Description</Text>
-            <Text style={{color: theme.colors.onSurfaceVariant, lineHeight: 22, marginBottom: 20}}>
+            {/* ডেসক্রিপশন */}
+            <Text variant="titleMedium" style={{fontWeight: 'bold', marginTop: 20, marginBottom: 8, color: theme.colors.onSurface}}>About Event</Text>
+            <Text style={{color: theme.colors.onSurfaceVariant, lineHeight: 24, fontSize: 15}}>
                 {event.description}
             </Text>
 
-            {/* 🟢 ৪. রুলস সেকশন (স্যাম্পল ইমেজের মতো স্টাইল) */}
+            {/* রুলস সেকশন */}
             <Surface style={[styles.rulesContainer, {backgroundColor: theme.dark ? theme.colors.elevation.level1 : '#F5F5F5'}]} elevation={0}>
                 <View style={styles.rulesHeader}>
-                    <MaterialCommunityIcons name="cog-outline" size={24} color={theme.colors.onSurface} />
-                    <Text variant="titleMedium" style={{fontWeight: 'bold', marginLeft: 8, color: theme.colors.onSurface}}>Event Rules & Requirements</Text>
-                </View>
-                
-                {/* যেহেতু আমাদের DB তে রুলস এবং ডিটেইলস একসাথে, আমরা পুরো টেক্সট দেখাব বা আলাদা করতে পারি। 
-                    নিচে ডামি ডাটা দিয়ে ডিজাইনটি দেখানো হলো */}
-                
-                <View style={styles.ruleItem}>
-                    <Text style={{fontWeight: 'bold', color: theme.colors.primary}}>1. Attendance:</Text>
-                    <Text style={{color: theme.colors.onSurfaceVariant}}>Be on time — late entries may not be allowed.</Text>
+                    <MaterialCommunityIcons name="shield-check-outline" size={24} color={theme.colors.primary} />
+                    <Text variant="titleMedium" style={{fontWeight: 'bold', marginLeft: 8, color: theme.colors.onSurface}}>Requirements</Text>
                 </View>
                 
                 <View style={styles.ruleItem}>
-                     <Text style={{fontWeight: 'bold', color: theme.colors.primary}}>2. Respect:</Text>
-                     <Text style={{color: theme.colors.onSurfaceVariant}}>Maintain a professional attitude toward all attendees.</Text>
+                    <Text style={{fontSize: 14, color: theme.colors.onSurfaceVariant}}>• Please join 10 minutes before start.</Text>
                 </View>
-
+                <View style={styles.ruleItem}>
+                     <Text style={{fontSize: 14, color: theme.colors.onSurfaceVariant}}>• Keep your microphone muted during the session.</Text>
+                </View>
             </Surface>
 
-            {/* এক্সট্রা স্পেস নিচে */}
             <View style={{height: 40}} />
-
         </View>
       </ScrollView>
-
-      {/* নিচের ফ্লোটিং বাটন (অপশনাল, যদি স্যাম্পল ইমেজের মতো উপরে বাটন না চান) */}
-      {/* <View style={[styles.bottomBar, {backgroundColor: theme.colors.surface}]}>
-          <Button mode="contained" fullWidth onPress={() => {}}>Join Event</Button>
-      </View> */}
     </>
   );
 }
 
 const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  imageContainer: {
-    height: 250,
+  
+  // ✅ নতুন হেডার স্টাইল
+  headerContainer: {
+    height: 280, // হেডারের উচ্চতা
     width: '100%',
-    position: 'relative',
   },
-  coverImage: {
-    width: '100%',
-    height: '100%',
+  gradientHeader: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'flex-end', // কন্টেন্ট নিচে থাকবে
+    paddingBottom: 40, // সাদা বক্সের নিচে যাতে ঢাকা না পড়ে
   },
-  overlay: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0,0,0,0.2)'
-  },
+  
   closeBtn: {
       position: 'absolute',
-      top: 40,
-      right: 20,
+      top: 50,
+      left: 20,
       zIndex: 10,
   },
-  contentContainer: {
-      flex: 1,
-      borderTopLeftRadius: 25,
-      borderTopRightRadius: 25,
-      marginTop: -25, // ইমেজ এর উপর একটু উঠে থাকবে
-      padding: 20,
-      minHeight: 500,
+  
+  // হেডারের ভেতরের টেক্সট
+  headerTitleArea: {
+      marginBottom: 10,
   },
-  headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 15,
+  bigTitle: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: 10,
+      textShadowColor: 'rgba(0,0,0,0.3)',
+      textShadowOffset: {width: 0, height: 1},
+      textShadowRadius: 5,
   },
-  infoSection: {
-      marginBottom: 15,
-  },
-  infoRow: {
+  dateChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 8,
+      backgroundColor: 'rgba(255,255,255,0.2)', // গ্লাস ইফেক্ট
+      alignSelf: 'flex-start',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+  },
+  dateChipText: {
+      color: 'white',
+      marginLeft: 6,
+      fontWeight: '600',
+      fontSize: 13,
+  },
+
+  // ✅ সাদা কন্টেন্ট বক্স (ওপরে কার্ভ করা)
+  contentContainer: {
+      flex: 1,
+      borderTopLeftRadius: 30,
+      borderTopRightRadius: 30,
+      marginTop: -30, // গ্রেডিয়েন্ট এর ওপর উঠে থাকবে
+      padding: 25,
+      minHeight: 500,
+  },
+
+  actionRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 5,
+  },
+  locationBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: 10,
   },
   infoText: {
-      marginLeft: 8,
-      fontSize: 14,
+      marginLeft: 5,
+      fontSize: 15,
+      fontWeight: '500',
   },
   participantRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 10,
+  },
+  creatorChip: {
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      backgroundColor: '#f0f0f0', 
+      paddingRight: 12, 
+      paddingVertical: 4, 
+      paddingLeft: 4, 
+      borderRadius: 50
   },
   rulesContainer: {
-      padding: 15,
-      borderRadius: 12,
-      marginTop: 10,
+      padding: 20,
+      borderRadius: 16,
+      marginTop: 25,
   },
   rulesHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: 15,
       borderBottomWidth: 1,
-      borderBottomColor: '#ddd',
+      borderBottomColor: 'rgba(0,0,0,0.05)',
       paddingBottom: 10,
   },
   ruleItem: {
-      marginBottom: 10,
+      marginBottom: 8,
   },
 });
