@@ -8,11 +8,10 @@ import {
 } from "react-native-paper";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-// 🟢 ৪ লেভেল উপরে গিয়ে Root ফোল্ডার থেকে ফাইল নেওয়া হচ্ছে
+
 import { supabase } from "../../../../app/lib/superbase"; 
 import { useAuth } from "../../../../app/lib/AuthProvid";
 import WriteReviewModal  from "../../../../component/WritereviewModal"; // component (singular)
-
 type Message = {
   id: number;
   room_id: string;
@@ -48,16 +47,14 @@ export default function ChatRoomScreen() {
   const openMenu = () => setVisible(true);
   const closeMenu = () => setVisible(false);
 
-  // ১. চ্যাট রুম ও ইউজার লোড
-// ১. চ্যাট রুম এবং ইউজার লোড করা (Error Handling সহ)
- // ১. চ্যাট রুম এবং ইউজার লোড করা (আপনার টেবিল কলাম অনুযায়ী ফিক্সড)
+
   useEffect(() => {
     const fetchRoomAndUser = async () => {
       if (!roomId || !me) return;
 
       console.log("Fetching Room Data for:", roomId);
 
-      // 🔴 পরিবর্তন: user_id/expert_id এর বদলে participant_a/participant_b কল করা হচ্ছে
+   
       const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
         .select('participant_a, participant_b') 
@@ -72,14 +69,13 @@ export default function ChatRoomScreen() {
 
       if (roomData) {
         console.log("Room Data Found:", roomData);
-        
-        // 🟢 লজিক: আমি যদি 'A' হই, তবে অপরপক্ষ 'B'। আর আমি 'B' হলে অপরপক্ষ 'A'।
+  
         const otherUserId = roomData.participant_a === me ? roomData.participant_b : roomData.participant_a;
         
-        // 🟢 টার্গেট সেট করা: আমরা অপরপক্ষকেই রিভিউ দেব
+
         setTargetExpertId(otherUserId);
 
-        // অপরপক্ষের প্রোফাইল লোড করা
+
         const { data: userData, error: userError } = await supabase
             .from('users')
             .select('id, first_name, last_name, profile_picture_url')
@@ -114,7 +110,7 @@ export default function ChatRoomScreen() {
 const handleReview = () => {
     closeMenu();
 
-    // ডিবাগিং: যদি টার্গেট আইডি না থাকে, তবে আমরা দেখব কেন নেই
+
     if (!targetExpertId) {
         Alert.alert(
             "Debug Info (Why Failed?)",
@@ -236,17 +232,17 @@ const handleReview = () => {
                 </View>
             } 
           />
-          {/* Menu Button */}
+  
           <Menu
             visible={visible}
             onDismiss={closeMenu}
             contentStyle={{ backgroundColor: 'white', borderRadius: 12 }}
             anchor={
-              // 🔴 ফিক্স: বাটনটিকে একটি View এর ভেতর রাখা হয়েছে যাতে এটি হারিয়ে না যায়
+            
               <View>
                 <Appbar.Action 
                   icon="dots-vertical" 
-                  color="black" // 🔴 ফিক্স: কালার ফিক্স করা হয়েছে (অনেক সময় সাদা হয়ে যায়)
+                  color="black" 
                   onPress={openMenu} 
                 />
               </View>
