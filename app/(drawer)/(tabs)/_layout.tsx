@@ -13,20 +13,16 @@ export default function TabsLayout() {
   const [checking, setChecking] = useState(true);
   const navigation: any = useNavigation();
 
-  // if (loading || checking) return null;
-  // if (!session) return <Redirect href="/(auth)/login" />;
-  // if (needsOnboarding) return <Redirect href="/(auth)/onBoarding" />;
-
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,   // 👈 enable header
+        headerShown: true,   
         headerTitleAlign: "center",
         headerLeft: () => (
           <IconButton
             icon="menu"
             size={22}
-            onPress={() => navigation.openDrawer()} // 👈 opens drawer
+            onPress={() => navigation.openDrawer()} 
           />
         ),
       }}
@@ -59,7 +55,7 @@ export default function TabsLayout() {
         }}
       />
        <Tabs.Screen name="user/[id]" options={{ href: null, headerShown:false }} />
-       //  <Tabs.Screen name="chats/[id]" options={{ href: null, headerShown:false }} />
+         <Tabs.Screen name="chats/[id]" options={{ href: null, headerShown:false }} />
     </Tabs>
   );
 }

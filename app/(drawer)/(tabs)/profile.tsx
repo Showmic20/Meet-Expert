@@ -283,9 +283,9 @@ export default function ProfileScreen() {
           
           <Divider style={styles.sectionDivider} />
 
-          {/* 🟢 STATS ROW FIXED */}
+        
           <View style={styles.statsContainer}>
-            {/* Rating */}
+            
             <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => user?.id && router.push(`/reviews/${user.id}`)}>
                 <View style={styles.statHeader}><Text style={styles.statTitle}>Rating</Text></View>
                 <Text style={styles.statValue}>{user?.rating ? user.rating.toFixed(1) : "4.6"}</Text>
@@ -294,7 +294,7 @@ export default function ProfileScreen() {
                 </View>
             </TouchableOpacity>
             
-            {/* Rank - Icon Position Fixed */}
+          
             <TouchableOpacity style={styles.statCard} onPress={() => setShowRankModal(true)}>
                 <View style={styles.statHeader}><Text style={styles.statTitle}>Rank</Text></View>
                 <View style={{ marginTop: 24, marginBottom: 4 }}>
@@ -303,7 +303,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.statValue, {fontSize: 14, marginTop: 0}]}>{rank}</Text>
             </TouchableOpacity>
 
-            {/* Chat - Icon Position Fixed & Conditional */}
+          
             {user?.is_expert ? (
                 <TouchableOpacity style={styles.statCard} onPress={!viewingSelf ? () => setChatOpen(true) : undefined}>
                     <View style={styles.statHeader}><Text style={styles.statTitle}>Chat</Text></View>
@@ -317,13 +317,12 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* ABOUT SECTION */}
+      
           <View style={styles.cardSection}>
             <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>About</Text></View>
             <Text style={styles.bioText} numberOfLines={4}>{bio}<Text style={styles.seeMoreText}> see more...</Text></Text>
           </View>
-{/* EDUCATION SECTION */}
-{/* EDUCATION SECTION */}
+
           <View style={styles.cardSection}>
              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Education</Text>
@@ -339,12 +338,12 @@ export default function ProfileScreen() {
                  <View key={edu.id}>
                    <View style={styles.eduItem}>
                      
-                     {/* 🟢 ফিক্স: Avatar.Image ব্যবহার করা হয়েছে */}
+                
                      <View style={{ marginRight: 15 }}>
                         <Avatar.Image 
                           size={48} 
                           source={edu.logo }
-                          style={{ backgroundColor: '#f0f0f0' }} // হালকা ধূসর ব্যাকগ্রাউন্ড
+                          style={{ backgroundColor: '#f0f0f0' }}
                         />
                      </View>
 
@@ -363,7 +362,7 @@ export default function ProfileScreen() {
              </TouchableOpacity>
           </View>
 
-          {/* SKILLS SECTION */}
+       
           <View style={styles.cardSection}>
              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Skills</Text>
@@ -459,6 +458,7 @@ export default function ProfileScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f9fa" },
   topHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 0, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' },
@@ -494,19 +494,19 @@ const styles = StyleSheet.create({
   seeMoreText: { color: 'gray', fontSize: 12 },
 eduItem: { 
     flexDirection: 'row', 
-    alignItems: 'center', // টেক্সট এবং লোগো সেন্টারে থাকবে
+    alignItems: 'center', 
     paddingVertical: 12 
   },
   logoContainer: {
     width: 45,
     height: 45,
-    marginRight: 12, // টেক্সট থেকে দূরত্ব
+    marginRight: 12, 
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff', // লোগোর ব্যাকগ্রাউন্ড
+    backgroundColor: '#fff', 
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee', // হালকা বর্ডার
+    borderColor: '#eee', 
   },
   eduLogo: { width: 40, height: 40, resizeMode: 'contain', marginRight: 12 },
   eduTextContainer: { flex: 1 },

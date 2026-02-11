@@ -14,7 +14,7 @@ import {
   FAB,
   IconButton,
   useTheme,
-  Badge // 🟢 Added Badge for notification count
+  Badge 
 } from "react-native-paper";
 import { useNavigation, DrawerActions } from "@react-navigation/native"; 
 import { SafeAreaView } from "react-native-safe-area-context"; 
@@ -23,13 +23,10 @@ import { router } from "expo-router";
 
 import WalletChip from "../../../component/Walletchip"; 
 import { useAuth } from "../../lib/AuthProvid"; 
-// 🟢 Import Notification Hook
+
 import { useNotifications } from "../../lib/NotificationProvider";
 import { useLanguage } from "../../lib/LanguageContext";
 
-// ───────────────────────────────────────────────────────────────────────────────
-// Types
-// ───────────────────────────────────────────────────────────────────────────────
 export type UserListItem = {
   id: string;
   first_name: string;
@@ -58,34 +55,31 @@ export default function HomeScreen() {
   const { session } = useAuth();
   const theme = useTheme();
   const { t } = useLanguage();
-  
-  // 🟢 Get Notification Data
+
   const { unreadCount } = useNotifications();
 
-  // 🟢 1. Hide Default Header
+ 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false, 
     });
   }, [navigation]);
 
-  // ── users state
+
   const [items, setItems] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   
-  // ── events state
+
   const [events, setEvents] = useState<EventItem[]>([]);
   const [eventsLoading, setEventsLoading] = useState<boolean>(false);
   const [eventsPage, setEventsPage] = useState<number>(0);
   const [eventsHasMore, setEventsHasMore] = useState<boolean>(true);
 
-  // ── general state
+  
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Fetch Functions
-  // ────────────────────────────────────────────────────────────────────────────
+ 
   const fetchExperts = useCallback(async () => {
     try {
       setLoading(true);
@@ -130,11 +124,11 @@ export default function HomeScreen() {
 
       const { data, error } = await q;
 if (error) {
-         console.error("❌ Supabase Error:", error); // 🟢 লগ ২: এরর চেক
+         console.error(" Supabase Error:", error); 
          throw error;
       }
 
-      // 🟢 লগ ৩: ডাটা ঠিকমতো আসছে কি না এবং কলামের নাম কী
+
       console.log("✅ Fetched Data:", JSON.stringify(data, null, 2));
 
      // if (error) throw error;
@@ -150,7 +144,7 @@ if (error) {
     }
   }, [eventsLoading, query]);
 
-  // ── Initial Data Load
+
   useEffect(() => {
     fetchExperts();
     fetchEventsPage(0, true);
@@ -167,9 +161,6 @@ if (error) {
     fetchEventsPage(eventsPage + 1);
   }, [eventsLoading, eventsHasMore, eventsPage, fetchEventsPage]);
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // RENDERERS
-  // ────────────────────────────────────────────────────────────────────────────
 
   const renderExpertItem = useCallback(({ item }: { item: UserListItem }) => {
     const name = `${item.first_name} ${item.last_name}`.trim();
@@ -210,10 +201,10 @@ const renderEventItem = useCallback(({ item, index }: { item: EventItem; index: 
 
   const isEven = index % 2 === 0;
   
-  // 🎨 ডাইনামিক গ্রেডিয়েন্ট কালার সেট করা
+
 const gradientColors = (isEven 
       ? ['#ac72df', '#4A00E0'] 
-      : ['#fc4a1a', '#f7b733']) as [string, string]; // Orange to Yellowish (Energetic Look)
+      : ['#fc4a1a', '#f7b733']) as [string, string];
 
   return (
     <Card 
@@ -221,12 +212,11 @@ const gradientColors = (isEven
       onPress={() => router.push(`/event/${item.id}`)}
     >
       <View style={styles.cardWrapper}>
-        
-        {/* ✅ ইমেজের বদলে সরাসরি LinearGradient ব্যবহার */}
+       
         <LinearGradient
           colors={gradientColors}
-          start={{ x: 0, y: 0 }} // কোণা থেকে শুরু (Top-Left)
-          end={{ x: 1, y: 1 }}   // কোণায় শেষ (Bottom-Right)
+          start={{ x: 0, y: 0 }} 
+          end={{ x: 1, y: 1 }}   
           style={styles.gradientBg}
         >
           
@@ -251,7 +241,7 @@ const gradientColors = (isEven
             <View pointerEvents="none">
               <Button 
                 mode="contained" 
-                buttonColor="rgba(255,255,255,0.2)" // গ্লাস ইফেক্ট বাটন
+                buttonColor="rgba(255,255,255,0.2)" 
                 compact
                 labelStyle={{ fontSize: 11, fontWeight: 'bold', color: 'white' }}
               >
@@ -266,9 +256,6 @@ const gradientColors = (isEven
   );
 }, []);
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Page Structure
-  // ────────────────────────────────────────────────────────────────────────────
 
   const ListHeader = (
     <View>
@@ -284,7 +271,7 @@ const gradientColors = (isEven
         <View style={styles.headerRight}>
             <WalletChip /> 
 
-            {/* 🟢 Notification Bell with Count */}
+
             <View style={styles.iconButton}>
                 <IconButton 
                     icon="bell-outline" 
@@ -356,13 +343,13 @@ const gradientColors = (isEven
       />
       <FAB
         icon="robot"
-        label="Meet AI" // চাইলে শুধু আইকন রাখতে label মুছে দিন
+        label="Meet AI" 
         style={{
           position: 'absolute',
           margin: 16,
           right: 0,
-          bottom: 90, // 👈 বিদ্যমান FAB এর উপরে দেখাবে
-          backgroundColor: '#254612', // আলাদা রং যাতে চোখে পড়ে
+          bottom: 90, 
+          backgroundColor: '#254612', 
         }}
         color="white"
         onPress={() => router.push('/ai-chat')}
@@ -408,7 +395,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 5
   },
-  // redDot removed in favor of Paper Badge, keeping style just in case of revert
+ 
   redDot: {
     position: 'absolute',
     top: 10,
@@ -450,7 +437,7 @@ const styles = StyleSheet.create({
     paddingLeft:7
   },
 
-  // Expert Card
+  
   cardHorizontal: {
     backgroundColor: '#e2dddd',
     width: 160,
@@ -487,35 +474,34 @@ const styles = StyleSheet.create({
   footerItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   footerText: { fontSize: 12, fontWeight: 'bold', color: '#444' },
 
-  // Event Card
-// styles এর ভেতরে
+
 eventCard: {
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
     elevation: 4,
-    minHeight: 100, // হাইট একটু বাড়ানো হলো যাতে ছবি সুন্দর দেখায়
+    minHeight: 100, 
     backgroundColor: 'white', 
   },
   gradientBg: {
     width: '100%',
-    paddingVertical: 5, // একটু প্যাডিং উপরে নিচে
+    paddingVertical: 5, 
     justifyContent: 'center',
   },
   bgImage: {
     width: '100%',
-    height: 150, // ✅ 100% এর বদলে ফিক্সড হাইট (যাতে সব কার্ড সমান হয়)
+    height: 150,
     justifyContent: 'flex-end', 
   },
-  // নতুন স্টাইল ১: কর্নার ঠিক রাখার জন্য
+  
   cardWrapper: {
     borderRadius: 16,
-    overflow: 'hidden', // এটি না দিলে ছবির কোণাগুলো কার্ডের বাইরে চলে যাবে
+    overflow: 'hidden', 
   },
  darkOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)', // ৪৫% কালো শেড
-    justifyContent: 'center', // কন্টেন্ট মাঝখানে বা সাজিয়ে রাখার জন্য
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
   },
 
   eventCardInner: {
@@ -523,7 +509,7 @@ eventCard: {
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16, // প্যাডিং একটু বাড়ানো হলো
+    paddingVertical: 16,
   },
   
   eventTitle: {
@@ -531,7 +517,7 @@ eventCard: {
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: 6,
-    textShadowColor: 'rgba(0,0,0,0.7)', // টেক্সট শ্যাডো
+    textShadowColor: 'rgba(0,0,0,0.7)', 
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
