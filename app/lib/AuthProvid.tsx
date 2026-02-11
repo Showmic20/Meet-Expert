@@ -1,4 +1,4 @@
-// lib/AuthProvid.tsx  (your AuthProvider2)
+
 import { PropsWithChildren, createContext, useContext, useEffect, useState } from "react";
 import supabase from "./superbase";
 import { Session } from "@supabase/supabase-js";
@@ -6,8 +6,8 @@ import { Session } from "@supabase/supabase-js";
 type AuthData = {
      session: Session | null;
      loading : boolean;
-     // auth/session loading
-     onboarded: boolean; // 🔹 new 
+     
+     onboarded: boolean; 
      setOnboarded: (v: boolean) => void;
 
 }
@@ -42,7 +42,7 @@ async function ensureUserRow(userId: string) {
     id: userId,
     first_name: "Unknown",
     last_name: "Unknown",
-  //  has_onboarded: false,  // Make sure we set the default value
+
   }, {  onConflict: "id", ignoreDuplicates: true });
 
 
@@ -56,7 +56,7 @@ async function ensureUserRow(userId: string) {
 useEffect(() => {
   let mounted = true;
 
-  // Initial session load
+ 
   (async () => {
     try {
       const { data } = await supabase.auth.getSession();
@@ -88,7 +88,7 @@ useEffect(() => {
     }
   })();
 
-  // Listen to auth state changes
+ 
   const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
     (async () => {
       try {
@@ -128,5 +128,6 @@ useEffect(() => {
 return ( <AuthContext.Provider value={{session,loading,onboarded, setOnboarded }}>
    {children} 
    </AuthContext.Provider> ); }
+
 
 export const useAuth = () => useContext(AuthContext);

@@ -18,7 +18,7 @@ export default function PaymentScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F5' }}>
       
-      {/* Header */}
+    
       <View style={styles.header}>
         <IconButton icon="arrow-left" size={24} onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Secure Payment</Text>
@@ -27,7 +27,7 @@ export default function PaymentScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         
-        {/* Wallet Balance Card */}
+       
         <Card style={styles.balanceCard}>
           <Card.Content style={{ alignItems: 'center' }}>
             <Text style={{ color: '#E3F2FD', fontSize: 14 }}>Current Balance</Text>
@@ -38,7 +38,7 @@ export default function PaymentScreen() {
           </Card.Content>
         </Card>
 
-        {/* Coin Packages Section */}
+        
         <Text style={styles.sectionTitle}>Select Package</Text>
         <View style={styles.packagesGrid}>
           {coinPackages.map((pkg) => (
@@ -58,7 +58,7 @@ export default function PaymentScreen() {
           ))}
         </View>
 
-        {/* Payment Method Section */}
+       
         <Text style={styles.sectionTitle}>Payment Method</Text>
         <Card style={styles.methodCard}>
             <RadioButton.Group onValueChange={setPaymentMethod} value={paymentMethod}>
@@ -82,7 +82,7 @@ export default function PaymentScreen() {
             </RadioButton.Group>
         </Card>
 
-        {/* Summary */}
+       
         <View style={styles.summaryContainer}>
             <View style={styles.summaryRow}>
                 <Text style={{color: 'gray'}}>Subtotal</Text>
@@ -100,7 +100,7 @@ export default function PaymentScreen() {
 
       </ScrollView>
 
-      {/* Pay Button */}
+      
       <View style={styles.footer}>
         <Button 
             mode="contained" 
@@ -177,4 +177,5 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
 
   footer: { padding: 20, backgroundColor: 'white', borderTopWidth: 1, borderColor: '#eee' }
+  
 });

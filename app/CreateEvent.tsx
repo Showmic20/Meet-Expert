@@ -24,7 +24,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// ❌ GooglePlacesAutocomplete বাদ দেওয়া হয়েছে
+
 import { supabase } from './lib/superbase';
 
 const DURATION_OPTIONS = [
@@ -39,28 +39,27 @@ export default function CreateEventScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  // ─── States ───
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
   const [details, setDetails] = useState('');
   
-  // 🟢 সাধারণ লোকেশন স্টেট
+
   const [locationName, setLocationName] = useState(''); 
 
-  // Date & Time
+
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [time, setTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // Others
+
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [customDuration, setCustomDuration] = useState('');
   const [showCustomDurationDialog, setShowCustomDurationDialog] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // ─── Handlers ───
+
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
@@ -114,8 +113,8 @@ export default function CreateEventScreen() {
             creator_id: user.id,
             title: eventName,
             description: fullDescription,
-            location: locationName, // ব্যবহারকারীর লেখা টেক্সট সরাসরি সেভ হবে
-            latitude: null, // ম্যানুয়াল ইনপুটে কো-অর্ডিনেট পাওয়া সম্ভব নয়
+            location: locationName, 
+            latitude: null, 
             longitude: null,
             start_at: startDateTime.toISOString(),
             end_at: endDateTime.toISOString(),
@@ -144,7 +143,7 @@ export default function CreateEventScreen() {
             style={styles.input}
           />
 
-          {/* 🟢 MANUAL LOCATION INPUT (NO API REQUIRED) */}
+  
           <TextInput
             mode="outlined"
             label="Location *"
@@ -163,7 +162,7 @@ export default function CreateEventScreen() {
             multiline numberOfLines={3} style={styles.input}
           />
 
-          {/* Date & Time */}
+     
           <View style={styles.rowContainer}>
             <TouchableOpacity onPress={() => setShowDatePicker(true)} style={[styles.pickerButton, {borderColor: theme.colors.outline}]}>
               <MaterialCommunityIcons name="calendar-month" size={24} color={theme.colors.primary} style={{marginRight: 8}} />
@@ -185,7 +184,7 @@ export default function CreateEventScreen() {
           {showDatePicker && <DateTimePicker value={date} mode="date" display='default' onChange={onDateChange} minimumDate={new Date()} />}
           {showTimePicker && <DateTimePicker value={time} mode="time" display='default' onChange={onTimeChange} />}
 
-          {/* Duration */}
+     
           <Text variant="titleMedium" style={styles.sectionTitle}>Duration</Text>
           <View style={styles.chipContainer}>
               {DURATION_OPTIONS.map((option) => {
@@ -203,8 +202,7 @@ export default function CreateEventScreen() {
                       </Chip>
                   );
               })}
-          </View>
-
+          </View>s
           <TextInput
             mode="outlined"
             label="Details (Rules/Requirements)"
@@ -212,7 +210,7 @@ export default function CreateEventScreen() {
             multiline numberOfLines={5} style={[styles.input, { marginTop: 20 }]}
           />
 
-          {/* Photos */}
+  
           <Text variant="titleMedium" style={styles.sectionTitle}>Cover Photo</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoScroll}>
               <TouchableOpacity style={[styles.addPhotoButton, {backgroundColor: theme.colors.elevation.level2, borderColor: theme.colors.outline}]} onPress={pickImage}>
@@ -234,7 +232,7 @@ export default function CreateEventScreen() {
           </Button>
         </View>
 
-        {/* Custom Duration Dialog */}
+ 
         <Portal>
             <Dialog visible={showCustomDurationDialog} onDismiss={() => setShowCustomDurationDialog(false)}>
                 <Dialog.Title>Custom Duration</Dialog.Title>
@@ -252,7 +250,6 @@ export default function CreateEventScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   scrollContent: { padding: 20, paddingBottom: 30 },
   input: { marginBottom: 15, backgroundColor: 'transparent' },

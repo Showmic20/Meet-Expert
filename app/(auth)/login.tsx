@@ -138,18 +138,18 @@ const styles = StyleSheet.create({
     backgroundColor:"#4195f5ff",
   },
   shadowbutton: {
-    elevation: 5, // For Android shadow
-    shadowColor: "#000", // iOS shadow color
-    shadowOffset: { width: 0, height: 4 }, // iOS shadow offset
-    shadowOpacity: 0.5, // iOS shadow opacity
-    shadowRadius: 4, // iOS shadow radius
+    elevation: 5,
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5, 
+    shadowRadius: 4,
   },
   shadowinput: {
-    elevation: 5, // For Android shadow
-    shadowColor: "#000", // iOS shadow color
-    shadowOffset: { width: 0, height: 4 }, // iOS shadow offset
-    shadowOpacity: 0.3, // iOS shadow opacity
-    shadowRadius: 4, // iOS shadow radius
+    elevation: 5, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   error: {
     color: "red",
@@ -170,5 +170,5 @@ const styles = StyleSheet.create({
   }
 });
 
-
 export default Login;
+

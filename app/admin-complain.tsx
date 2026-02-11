@@ -5,7 +5,7 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../app/lib/superbase'; // পাথ ঠিক করে নিন
+import { supabase } from '../app/lib/superbase'; 
 import { useRouter } from 'expo-router';
 import { Appbar, Badge, Button, Divider } from 'react-native-paper';
 
@@ -16,18 +16,17 @@ export default function AdminComplaintsScreen() {
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // ১. রিপোর্ট ফেচ করা (সাথে রিপোর্টার এবং রুম ইনফো)
+
   const fetchReports = async () => {
     setLoading(true);
     
-    // আমরা reports টেবিল থেকে ডাটা আনব
     const { data, error } = await supabase
       .from('reports')
       .select(`
         *,
         reporter:reporter_id (first_name, last_name)
       `)
-      .eq('status', 'pending') // শুধু পেন্ডিং গুলো দেখাব
+      .eq('status', 'pending') 
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -43,7 +42,7 @@ export default function AdminComplaintsScreen() {
     fetchReports();
   }, []);
 
-  // ২. স্ট্যাটাস আপডেট অ্যাকশন
+  
   const handleAction = async (id: string, action: 'resolved' | 'rejected') => {
     setLoading(true);
     const { error } = await supabase
@@ -58,11 +57,11 @@ export default function AdminComplaintsScreen() {
     } else {
       Alert.alert("Success", `Report marked as ${action}`);
       setModalVisible(false);
-      fetchReports(); // লিস্ট রিফ্রেশ
+      fetchReports();
     }
   };
 
-  // ৩. লিস্ট আইটেম কার্ড
+  
   const renderItem = ({ item }: any) => (
     <TouchableOpacity 
       style={styles.card} 
@@ -113,7 +112,7 @@ export default function AdminComplaintsScreen() {
         />
       )}
 
-      {/* ৪. ডিটেইলস মডাল */}
+      
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -145,7 +144,7 @@ export default function AdminComplaintsScreen() {
                     <Text style={styles.valueSmall}>Chat Room ID: {selectedReport.room_id}</Text>
                 </View>
 
-                {/* অ্যাকশন বাটন */}
+                
                 <View style={styles.actionContainer}>
                     <Text style={styles.actionTitle}>Take Action:</Text>
                     
@@ -185,7 +184,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 12,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 2,
-    borderLeftWidth: 4, borderLeftColor: '#FF3B30' // Red indicator for alert
+    borderLeftWidth: 4, borderLeftColor: '#FF3B30' 
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   reasonTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },

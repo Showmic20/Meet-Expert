@@ -3,7 +3,7 @@ import { View, ScrollView, StyleSheet, TouchableOpacity, Alert, KeyboardAvoiding
 import { Text, TextInput, Button, Checkbox, Appbar, ActivityIndicator } from "react-native-paper";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { supabase } from "../app/lib/superbase"; 
-import { useAuth } from "../app/lib/AuthProvid"; // আপনার পাথ অনুযায়ী ঠিক করে নিন
+import { useAuth } from "../app/lib/AuthProvid"; 
 
 const REASONS = [
   "Technical Failure (caused by Expert or Platform)",
@@ -15,7 +15,7 @@ const REASONS = [
 
 export default function ReportScreen() {
   const router = useRouter();
-  const { roomId } = useLocalSearchParams<{ roomId: string }>(); // চ্যাট পেজ থেকে roomId পাব
+  const { roomId } = useLocalSearchParams<{ roomId: string }>(); 
   const { session } = useAuth();
   
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export default function ReportScreen() {
     try {
       const { error } = await supabase.from("reports").insert({
         reporter_id: session?.user?.id,
-        room_id: roomId, // চ্যাট রুম আইডি
+        room_id: roomId, 
         reason: selectedReason,
         details: details,
       });
@@ -56,7 +56,7 @@ export default function ReportScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+
       <Appbar.Header style={styles.header}>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title="Complain and Report" titleStyle={styles.headerTitle} />
@@ -71,7 +71,7 @@ export default function ReportScreen() {
             For valid you will get your payment back
           </Text>
 
-          {/* Reason Checkboxes */}
+
           <View style={styles.reasonContainer}>
             {REASONS.map((reason, index) => (
               <TouchableOpacity 
@@ -88,7 +88,7 @@ export default function ReportScreen() {
             ))}
           </View>
 
-          {/* Details Input */}
+
           <TextInput
             mode="outlined"
             placeholder="Write here in details"
@@ -102,7 +102,6 @@ export default function ReportScreen() {
             theme={{ colors: { primary: '#9575CD', background: '#F0EFF5' } }} // Purple focus color
           />
 
-          {/* Footer Terms */}
           <View style={styles.footerContainer}>
             <Text style={styles.footerTitle}>For verification we will reach out the expert</Text>
             <TouchableOpacity onPress={() => Alert.alert("Info", "Terms and conditions modal...")}>
@@ -120,7 +119,7 @@ export default function ReportScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Submit Button */}
+ 
           <Button 
             mode="contained" 
             onPress={handleSubmit} 
@@ -151,7 +150,6 @@ const styles = StyleSheet.create({
   checkboxRow: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
   reasonText: { fontSize: 14, color: "#333", flex: 1 },
 
-  // Custom Checkbox Styling to match image (Square)
   customCheckbox: {
     width: 20,
     height: 20,
@@ -164,7 +162,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff'
   },
   customCheckboxSelected: {
-    borderColor: "#9575CD", // Purple hint
+    borderColor: "#9575CD", 
     backgroundColor: "#9575CD", 
   },
   innerCheck: {
@@ -181,19 +179,18 @@ const styles = StyleSheet.create({
   },
   inputOutline: { 
     borderRadius: 12, 
-    borderColor: "#9575CD", // Purple border as shown in image
+    borderColor: "#9575CD",
     borderWidth: 1 
   },
 
   footerContainer: { marginBottom: 30 },
   footerTitle: { fontSize: 14, fontWeight: "600", color: "#000", marginBottom: 5 },
-  linkText: { fontSize: 14, color: "#7E57C2", marginBottom: 15, textDecorationLine: "underline" }, // Purple link
+  linkText: { fontSize: 14, color: "#7E57C2", marginBottom: 15, textDecorationLine: "underline" }, 
   
   acceptRow: { flexDirection: "row", alignItems: "center" },
   acceptText: { fontSize: 14, color: "#333" },
-
   submitButton: { 
-    backgroundColor: "#FF3B30", // Red color as shown in image
+    backgroundColor: "#FF3B30", 
     borderRadius: 25,
     marginTop: 10
   }

@@ -20,6 +20,6 @@ export default function AuthLayout() {
 
   // Conditional rendering is fine here
   if (loading || onboarded === null) return null;
-
   return <Stack screenOptions={{ headerShown: false }} />;
+
 }

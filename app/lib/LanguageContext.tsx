@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState } from 'react';
 
-// 🟢 এখানে আপনার অ্যাপের সব বাংলা ও ইংরেজি শব্দ থাকবে
+
 const translations = {
   en: {
-    // Drawer Items (যেগুলো মিসিং ছিল)
+    
     settings: "Settings",
     darkTheme: "Dark Theme",
     language: "Language",
@@ -12,7 +12,7 @@ const translations = {
     logout: "Logout",
     logoutSuccess: "Logged out successfully!",
     
-    // Home & General Items
+    
     home: "Home",
     expertsForYou: "Experts For you",
     upcomingEvents: "Upcoming Events",
@@ -24,11 +24,11 @@ const translations = {
     noTitle: "Untitled Event",
     noNotifications: "No notifications yet",
     justNow: "Just now",
-    chat: "Chat", // 🟢 যোগ করুন
+    chat: "Chat", 
   
   },
   bn: {
-    // Drawer Items (বাংলা অনুবাদ)
+
     settings: "সেটিংস",
     darkTheme: "ডার্ক থিম",
     language: "ভাষা (বাংলা)",
@@ -37,7 +37,6 @@ const translations = {
     logout: "লগ আউট",
     logoutSuccess: "সফলভাবে লগ আউট হয়েছে!",
 
-    // Home & General Items
     home: "হোম",
     expertsForYou: "আপনার জন্য বিশেষজ্ঞ",
     upcomingEvents: "আসন্ন ইভেন্টসমূহ",
@@ -54,9 +53,9 @@ const translations = {
   
 };
 
-// 🟢 টাইপ ডেফিনিশন (এটি অটোমেটিক কাজ করবে)
+
 type Language = 'en' | 'bn';
-type TranslationKeys = keyof typeof translations.en; // এটি নিশ্চিত করে যে key গুলো সঠিক
+type TranslationKeys = keyof typeof translations.en; 
 
 type LanguageContextType = {
   language: Language;
@@ -82,7 +81,6 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
   const t = (key: TranslationKeys) => {
     return translations[language][key] || key;
   };
-
   return (
     <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
       {children}

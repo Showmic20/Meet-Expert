@@ -18,23 +18,22 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { supabase } from "../app/lib/superbase"; 
 
-// ⚠️ আপনার প্রজেক্টের supabase ক্লায়েন্ট ইমপোর্ট করুন
-// যদি আপনার ফাইলটি অন্য ফোল্ডারে থাকে তবে পাথ ঠিক করে নিন
+
 
 export default function VerificationScreen() {
   const router = useRouter();
   
-  // লোডিং স্টেট (আপলোডের সময় চাকা ঘোরার জন্য)
+
   const [loading, setLoading] = useState(false);
 
-  // ইমেজের স্টেট
+
   const [idImage, setIdImage] = useState<string | null>(null);
   const [docImage, setDocImage] = useState<string | null>(null);
   const [faceImage, setFaceImage] = useState<string | null>(null);
 
-  // ১. ইমেজ সিলেক্ট করার ফাংশন
+
   const pickImage = async (setImage: (uri: string) => void, useCamera: boolean = false) => {
-    // পারমিশন চেক
+
     const permissionResult = useCamera 
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -48,7 +47,7 @@ export default function VerificationScreen() {
       ? await ImagePicker.launchCameraAsync({
           allowsEditing: true,
           aspect: [1, 1],
-          quality: 0.5, // ইমেজ সাইজ কমানোর জন্য কোয়ালিটি ০.৫ রাখা ভালো
+          quality: 0.5,
         })
       : await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -61,22 +60,19 @@ export default function VerificationScreen() {
     }
   };
 
-  // ২. সুপাবেসে ইমেজ আপলোড করার হেল্পার ফাংশন
-// ২. সুপাবেসে ইমেজ আপলোড করার হেল্পার ফাংশন
-  // ২. (নতুন পদ্ধতি) সুপাবেসে ইমেজ আপলোড করার হেল্পার ফাংশন
+
   const uploadImageToSupabase = async (uri: string, folderName: string) => {
     try {
-      // ইমেজের এক্সটেনশন বের করা
+
       const fileExt = uri.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${folderName}/${fileName}`;
 
-      // 🟢 পরিবর্তন: FileSystem এর বদলে fetch ব্যবহার করা হচ্ছে
-      // এটি সরাসরি ইমেজটিকে বাইনারি ফরম্যাটে নিয়ে আসে
+
       const response = await fetch(uri);
       const blob = await response.arrayBuffer();
 
-      // সুপাবেস স্টোরেজে আপলোড
+
       const { data, error } = await supabase.storage
         .from('verification-docs')
         .upload(filePath, blob, {
@@ -85,7 +81,6 @@ export default function VerificationScreen() {
 
       if (error) throw error;
 
-      // পাবলিক URL বের করা
       const { data: urlData } = supabase.storage
         .from('verification-docs')
         .getPublicUrl(filePath);
@@ -97,9 +92,9 @@ export default function VerificationScreen() {
       throw error;
     }
   };
-  // ৩. ফাইনাল সাবমিট ফাংশন
+
   const handleSubmit = async () => {
-    // ভ্যালিডেশন
+
     if (!idImage || !faceImage) {
       Alert.alert("Incomplete", "Please upload ID and complete Face Verification.");
       return;
@@ -108,7 +103,7 @@ export default function VerificationScreen() {
     setLoading(true);
 
     try {
-      // ক. বর্তমানে লগইন করা ইউজারকে খোঁজা
+
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -119,7 +114,7 @@ export default function VerificationScreen() {
 
       console.log("Starting upload for user:", user.id);
 
-      // খ. ছবিগুলো আপলোড করা (Promise.all দিয়ে একসাথে করা যায়, তবে ধাপে ধাপে সহজ)
+
       const nidUrl = await uploadImageToSupabase(idImage, 'nids');
       const faceUrl = await uploadImageToSupabase(faceImage, 'faces');
       
@@ -128,20 +123,20 @@ export default function VerificationScreen() {
         docUrl = await uploadImageToSupabase(docImage, 'documents');
       }
 
-      // গ. ডেটাবেসে রেকর্ড জমা দেওয়া
+
       const { error: dbError } = await supabase
-        .from('verification_requests') // ⚠️ নিশ্চিত করুন এই নামে Table আছে
+        .from('verification_requests') 
         .insert({
           user_id: user.id,
           nid_image_path: nidUrl,
           live_image_path: faceUrl,
           doc_image_path: docUrl,
-          status: 'pending' // ডিফল্ট স্ট্যাটাস
+          status: 'pending' 
         });
 
       if (dbError) throw dbError;
 
-      // সফল হলে
+
       Alert.alert("Success", "Verification request submitted successfully!", [
         { text: "OK", onPress: () => router.back() }
       ]);
@@ -154,7 +149,7 @@ export default function VerificationScreen() {
     }
   };
 
-  // UI Components (আপনার আগের কোডই)
+
   const UploadBox = ({ title, subtitle, imageUri, onPress }: any) => (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -188,7 +183,7 @@ export default function VerificationScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
-        {/* 1. Upload ID Section */}
+
         <UploadBox 
           title="Upload ID" 
           subtitle="Upload a photo of your NID, Passport or Driving license for verification"
@@ -196,7 +191,6 @@ export default function VerificationScreen() {
           onPress={() => pickImage(setIdImage)}
         />
 
-        {/* 2. Upload Official Documents Section */}
         <UploadBox 
           title="Upload Official Documents" 
           subtitle="Upload a photo of your Business or Tax Documents, Professional & Experience Documents."
@@ -204,7 +198,7 @@ export default function VerificationScreen() {
           onPress={() => pickImage(setDocImage)}
         />
 
-        {/* 3. Start Face Verification Section */}
+    
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Start Face verification</Text>
           <Text style={styles.sectionSubtitle}>Open your camera and verify your face in live</Text>
@@ -224,7 +218,7 @@ export default function VerificationScreen() {
           </View>
         </View>
 
-        {/* Submit Button with Loading Indicator */}
+
         <TouchableOpacity 
           style={[styles.submitButton, loading && { opacity: 0.7 }]} 
           onPress={handleSubmit}
@@ -243,8 +237,7 @@ export default function VerificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ... আপনার আগের স্টাইলগুলো এখানে হুবহু একই থাকবে
-  // আমি শুধু জায়গার স্বার্থে রিপিট করলাম না, আপনি আপনার আগের styles ব্লকটি এখানে রেখে দেবেন
+
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -307,7 +300,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   uploadTextBlue: {
-    color: '#4169E1', // Royal Blue shade
+    color: '#4169E1',
     fontWeight: '600',
     fontSize: 14,
     marginBottom: 4,
@@ -332,7 +325,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#FFF0F5', // Light pinkish bg
+    backgroundColor: '#FFF0F5', 
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',

@@ -4,7 +4,7 @@ import { Text, Button, Avatar, useTheme, ActivityIndicator, Divider, Surface } f
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { supabase } from '../../app/lib/superbase'; 
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient'; // ✅ ১. ইমপোর্ট
+import { LinearGradient } from 'expo-linear-gradient'; 
 
 const { width } = Dimensions.get('window');
 
@@ -48,18 +48,17 @@ export default function EventDetailsScreen() {
     }
   };
 
-  // ✅ ২. গ্রেডিয়েন্ট লজিক (ID এর শেষ অক্ষর চেক করে কালার ঠিক করা)
-  // এটি নিশ্চিত করে যে একই ইভেন্ট সবসময় একই কালার দেখাবে
+
   const getGradientColors = () => {
-    if (!id) return ['#8E2DE2', '#4A00E0']; // ডিফল্ট (Purple)
+    if (!id) return ['#8E2DE2', '#4A00E0']; 
     
-    // ID এর শেষ অক্ষরটি নিই এবং তার কোড বের করি
+
     const lastChar = String(id).slice(-1).charCodeAt(0);
     const isEven = lastChar % 2 === 0;
 
     return isEven 
-      ? ['#8E2DE2', '#4A00E0']  // Purple (জোড় হলে)
-      : ['#fc4a1a', '#f7b733']; // Orange (বিজোড় হলে)
+      ? ['#8E2DE2', '#4A00E0']  
+      : ['#fc4a1a', '#f7b733']; 
   };
 
   if (loading) {
@@ -88,15 +87,15 @@ export default function EventDetailsScreen() {
       
       <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} showsVerticalScrollIndicator={false}>
         
-        {/* 🟢 ৩. ইমেজ কন্টেইনার এর বদলে গ্রেডিয়েন্ট হেডার */}
+
         <View style={styles.headerContainer}>
             <LinearGradient
-                colors={getGradientColors() as [string, string]} // টাইপ ফিক্স
+                colors={getGradientColors() as [string, string]} 
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.gradientHeader}
             >
-                {/* ক্লোজ বাটন */}
+              
                 <TouchableOpacity 
                     style={styles.closeBtn} 
                     onPress={() => router.back()}
@@ -104,7 +103,7 @@ export default function EventDetailsScreen() {
                     <Ionicons name="arrow-back-circle" size={40} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
 
-                {/* ইভেন্ট টাইটেল হেডারের ভেতরেই দেখালে সুন্দর লাগে */}
+               
                 <View style={styles.headerTitleArea}>
                     <Text style={styles.bigTitle}>{event.title}</Text>
                     <View style={styles.dateChip}>
@@ -116,10 +115,10 @@ export default function EventDetailsScreen() {
             </LinearGradient>
         </View>
 
-        {/* 🟢 ৪. মেইন কন্টেন্ট বডি (সাদা অংশ) */}
+       
         <View style={[styles.contentContainer, { backgroundColor: theme.colors.background }]}>
             
-            {/* জয়েন বাটন এবং লোকেশন */}
+           
             <View style={styles.actionRow}>
                 <View style={styles.locationBox}>
                     <MaterialCommunityIcons name="map-marker" size={20} color={theme.colors.primary} />
@@ -140,7 +139,7 @@ export default function EventDetailsScreen() {
 
             <Divider style={{marginVertical: 20}} />
 
-            {/* ক্রিয়েটর সেকশন */}
+        
             <View style={styles.participantRow}>
                 <Text style={{marginRight: 10, color: theme.colors.onSurfaceVariant}}>Hosted by</Text>
                 {creator ? (
@@ -153,13 +152,12 @@ export default function EventDetailsScreen() {
                 )}
             </View>
 
-            {/* ডেসক্রিপশন */}
+          
             <Text variant="titleMedium" style={{fontWeight: 'bold', marginTop: 20, marginBottom: 8, color: theme.colors.onSurface}}>About Event</Text>
             <Text style={{color: theme.colors.onSurfaceVariant, lineHeight: 24, fontSize: 15}}>
                 {event.description}
             </Text>
 
-            {/* রুলস সেকশন */}
             <Surface style={[styles.rulesContainer, {backgroundColor: theme.dark ? theme.colors.elevation.level1 : '#F5F5F5'}]} elevation={0}>
                 <View style={styles.rulesHeader}>
                     <MaterialCommunityIcons name="shield-check-outline" size={24} color={theme.colors.primary} />
@@ -184,16 +182,16 @@ export default function EventDetailsScreen() {
 const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  // ✅ নতুন হেডার স্টাইল
+
   headerContainer: {
-    height: 280, // হেডারের উচ্চতা
-    width: '100%',
+      width: '100%',
+    height: 280, 
   },
   gradientHeader: {
     flex: 1,
     padding: 20,
-    justifyContent: 'flex-end', // কন্টেন্ট নিচে থাকবে
-    paddingBottom: 40, // সাদা বক্সের নিচে যাতে ঢাকা না পড়ে
+    justifyContent: 'flex-end', 
+    paddingBottom: 40, 
   },
   
   closeBtn: {
@@ -203,7 +201,7 @@ const styles = StyleSheet.create({
       zIndex: 10,
   },
   
-  // হেডারের ভেতরের টেক্সট
+
   headerTitleArea: {
       marginBottom: 10,
   },
@@ -219,7 +217,7 @@ const styles = StyleSheet.create({
   dateChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.2)', // গ্লাস ইফেক্ট
+      backgroundColor: 'rgba(255,255,255,0.2)', 
       alignSelf: 'flex-start',
       paddingHorizontal: 12,
       paddingVertical: 6,
@@ -232,12 +230,12 @@ const styles = StyleSheet.create({
       fontSize: 13,
   },
 
-  // ✅ সাদা কন্টেন্ট বক্স (ওপরে কার্ভ করা)
+  
   contentContainer: {
       flex: 1,
       borderTopLeftRadius: 30,
       borderTopRightRadius: 30,
-      marginTop: -30, // গ্রেডিয়েন্ট এর ওপর উঠে থাকবে
+      marginTop: -30, 
       padding: 25,
       minHeight: 500,
   },

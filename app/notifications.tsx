@@ -11,9 +11,9 @@ import {
 } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useNotifications } from './lib/NotificationProvider';
-import { useLanguage } from './lib/LanguageContext'; // 🟢 Import Language Hook
+import { useLanguage } from './lib/LanguageContext'; 
 
-// 🟢 Localized Time Helper
+
 const getTimeAgo = (dateString: string, lang: 'en' | 'bn') => {
   const now = new Date();
   const date = new Date(dateString);
@@ -39,21 +39,22 @@ const getTimeAgo = (dateString: string, lang: 'en' | 'bn') => {
   return isBn ? "এইমাত্র" : "Just now";
 };
 
-// 🟢 Helper to Translate Database Messages
+
 const getLocalizedMessage = (message: string, lang: 'en' | 'bn') => {
   if (lang === 'en') return message;
 
-  // ডাটাবেসের ইংরেজি মেসেজগুলোর বাংলা ম্যাপিং
+//mapping with bangla context
+
   if (message.includes("sent you a chat request")) return "আপনাকে চ্যাট রিকোয়েস্ট পাঠিয়েছেন।";
   if (message.includes("started following you")) return "আপনাকে ফলো করা শুরু করেছেন।";
   if (message.includes("New Chat Request")) return "নতুন চ্যাট রিকোয়েস্ট";
   
-  return message; // কোনো ম্যাচ না পেলে যা আছে তাই দেখাবে
+  return message; 
 };
 
 export default function NotificationScreen() {
   const { notifications, loading, markAsRead } = useNotifications();
-  const { t, language } = useLanguage(); // 🟢 Get Language
+  const { t, language } = useLanguage(); 
   const theme = useTheme();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
@@ -74,7 +75,6 @@ export default function NotificationScreen() {
     const actorName = item.actor ? `${item.actor.first_name} ${item.actor.last_name}` : "System";
     const avatarUrl = item.actor?.profile_picture_url;
 
-    // 🟢 Translate Message based on Language
     const displayMessage = getLocalizedMessage(item.message, language);
 
     return (
@@ -83,7 +83,7 @@ export default function NotificationScreen() {
         rippleColor="rgba(0, 0, 0, .1)"
       >
         <View style={[styles.itemContainer, { backgroundColor }]}>
-          {/* Avatar Section */}
+          
           <View style={styles.avatarContainer}>
             {isSystem ? (
                <Avatar.Icon size={48} icon="bell-ring" style={{backgroundColor: theme.colors.secondaryContainer}} color={theme.colors.onSecondaryContainer} />
@@ -100,14 +100,14 @@ export default function NotificationScreen() {
             )}
           </View>
 
-          {/* Text Content */}
+        
           <View style={styles.textContainer}>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
               <Text style={{ fontWeight: 'bold' }}>{actorName}</Text>
               <Text> {displayMessage}</Text>
             </Text>
             <Text variant="labelSmall" style={{ color: theme.colors.outline, marginTop: 4 }}>
-              {getTimeAgo(item.created_at, language)} {/* 🟢 Pass Language */}
+              {getTimeAgo(item.created_at, language)} 
             </Text>
           </View>
 

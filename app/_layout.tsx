@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Stack } from "expo-router";
 import AuthProvider2 from "./lib/AuthProvid";
 import { NotificationProvider } from "./lib/NotificationProvider"; 
-// 🟢 Import LanguageProvider
+
 import { LanguageProvider } from "./lib/LanguageContext"; 
 import { Provider as PaperProvider, MD3LightTheme, MD3DarkTheme } from "react-native-paper";
 import { StatusBar } from "react-native";
@@ -17,7 +17,7 @@ export default function RootLayout() {
   return (
     <AuthProvider2>
       <NotificationProvider>
-        {/* 🟢 LanguageProvider দিয়ে র‍্যাপ করুন */}
+   
         <LanguageProvider>
           <ThemeCtx.Provider value={{ dark, toggle }}>
             <PaperProvider theme={theme}>
@@ -25,7 +25,6 @@ export default function RootLayout() {
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="(tabs)" /> 
-                {/*Drawer layout এর ভেতরে থাকলে সেখানে মেনু পাবেন*/}
               </Stack>
             </PaperProvider>
           </ThemeCtx.Provider>
@@ -33,4 +32,4 @@ export default function RootLayout() {
       </NotificationProvider>
     </AuthProvider2>
   );
-}
+} 

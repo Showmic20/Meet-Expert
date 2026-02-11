@@ -10,5 +10,4 @@ const Index = () => {
  // return <Redirect href= "/(auth)/onboarding" />
   
 }
-
 export default Index

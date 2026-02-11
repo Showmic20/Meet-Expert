@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { TextInput, Button, Avatar, ActivityIndicator, useTheme, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { supabase } from '../app/lib/superbase'; // পাথ ঠিক আছে কিনা চেক করুন (superbase vs supabase)
-import { useAuth } from '../app/lib/AuthProvid'; // পাথ ঠিক আছে কিনা চেক করুন
+import { supabase } from '../app/lib/superbase';
+import { useAuth } from '../app/lib/AuthProvid'; 
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -16,10 +16,10 @@ export default function EditProfileScreen() {
   const [occupation, setOccupation] = useState('');
   const [company, setCompany] = useState('');
   const [bio, setBio] = useState('');
-  const [availability, setAvailability] = useState(''); // 🟢 নতুন ফিল্ড
+  const [availability, setAvailability] = useState(''); 
   const [location, setLocation] = useState('');
 
-  // ─── ১. ডাটা লোড করা ─────────────────────────────
+
   useEffect(() => {
     if (session?.user) fetchProfile();
   }, [session]);
@@ -41,7 +41,7 @@ export default function EditProfileScreen() {
         setOccupation(data.occupation || '');
         setCompany(data.company_name || '');
         setBio(data.bio || '');
-        setAvailability(data.availability || ''); // 🟢 ডাটাবেস থেকে টাইম আনা
+        setAvailability(data.availability || ''); 
         setLocation(data.location || '');
       }
     } catch (error: any) {
@@ -52,7 +52,7 @@ export default function EditProfileScreen() {
     }
   };
 
-  // ─── ২. প্রোফাইল আপডেট করা ──────────────────────────
+
   const handleUpdate = async () => {
     try {
       setLoading(true);
@@ -62,7 +62,7 @@ export default function EditProfileScreen() {
         occupation: occupation,
         company_name: company,
         bio: bio,
-        availability: availability, // 🟢 ডাটাবেসে সেভ করা
+        availability: availability, 
         location: location,
         updated_at: new Date(),
       };
@@ -75,7 +75,7 @@ export default function EditProfileScreen() {
       if (error) throw error;
 
       Alert.alert('Success', 'Profile updated successfully!', [
-        { text: 'OK', onPress: () => router.back() } // সেভ হওয়ার পর ব্যাকে যাবে
+        { text: 'OK', onPress: () => router.back() } 
       ]);
       
     } catch (error: any) {
@@ -100,7 +100,6 @@ export default function EditProfileScreen() {
     >
       <ScrollView contentContainerStyle={styles.container}>
         
-        {/* Header Title */}
         <Text variant="headlineSmall" style={styles.headerTitle}>Edit Profile</Text>
 
         <View style={styles.inputContainer}>
@@ -146,7 +145,7 @@ export default function EditProfileScreen() {
               left={<TextInput.Icon icon="map-marker" />}
             />
 
-            {/* 🟢 Preferred Available Time Field */}
+           
             <View style={styles.availabilitySection}>
                 <Text variant="titleMedium" style={{ fontWeight: 'bold', marginBottom: 5, color: theme.colors.primary }}>
                     Availability
@@ -187,7 +186,7 @@ export default function EditProfileScreen() {
           Save Changes
         </Button>
         
-        {/* Cancel Button */}
+       
         <Button 
           mode="text" 
           onPress={() => router.back()} 

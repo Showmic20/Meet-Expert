@@ -11,16 +11,15 @@ export default function AdminRequestsScreen() {
   const router = useRouter();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<any>(null); // মডালে দেখানোর জন্য
+  const [selectedRequest, setSelectedRequest] = useState<any>(null); 
   const [modalVisible, setModalVisible] = useState(false);
 
-  // ১. পেন্ডিং রিকোয়েস্টগুলো ফেচ করা
   const fetchRequests = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('verification_requests')
       .select('*')
-      .eq('status', 'pending') // শুধুমাত্র পেন্ডিং গুলো দেখাবে
+      .eq('status', 'pending') 
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -36,7 +35,7 @@ export default function AdminRequestsScreen() {
     fetchRequests();
   }, []);
 
-  // ২. স্ট্যাটাস আপডেট ফাংশন (Approve/Reject)
+  
   const updateStatus = async (id: number, newStatus: 'approved' | 'rejected') => {
     const { error } = await supabase
       .from('verification_requests')
@@ -48,11 +47,11 @@ export default function AdminRequestsScreen() {
     } else {
       Alert.alert("Success", `Request ${newStatus}!`);
       setModalVisible(false);
-      fetchRequests(); // লিস্ট রিফ্রেশ করা
+      fetchRequests(); 
     }
   };
 
-  // ৩. রিকোয়েস্ট কার্ড ডিজাইন
+  
   const renderItem = ({ item }: any) => (
     <TouchableOpacity 
       style={styles.card} 
@@ -96,7 +95,7 @@ export default function AdminRequestsScreen() {
         />
       )}
 
-      {/* ৪. ডিটেইলস মডাল (ছবি দেখার জন্য) */}
+      
       <Modal visible={modalVisible} animationType="slide" transparent={false}>
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -122,7 +121,7 @@ export default function AdminRequestsScreen() {
                     </>
                 )}
 
-                {/* Action Buttons */}
+               
                 <View style={styles.actionRow}>
                   <TouchableOpacity 
                     style={[styles.actionBtn, styles.rejectBtn]} 
@@ -176,5 +175,5 @@ const styles = StyleSheet.create({
   actionBtn: { flex: 1, padding: 15, borderRadius: 8, alignItems: 'center', marginHorizontal: 5 },
   rejectBtn: { backgroundColor: '#ffebee' },
   approveBtn: { backgroundColor: '#e8f5e9' },
-  btnText: { fontWeight: 'bold', fontSize: 16, color: '#000' } // কালার কাস্টমাইজ করতে পারেন
+  btnText: { fontWeight: 'bold', fontSize: 16, color: '#000' } 
 });

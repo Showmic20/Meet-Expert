@@ -15,18 +15,13 @@ import {
   ActivityIndicator,
   Alert 
 } from 'react-native';
-// Lucide বাদ দিয়ে Expo Icons ব্যবহার করা হয়েছে (Built-in)
+
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
-// ==========================================
-// CONFIGURATION
-// ==========================================
 const GEMINI_API_KEY = 'AIzaSyB48WvpPZnSg_PekKbqs9iiRWmWOYIQ6t8'; 
 const MODEL_NAME = 'gemini-2.5-flash';
 
-// ==========================================
-// TYPES
-// ==========================================
+
 interface Message {
   id: string;
   sender: 'user' | 'ai';
@@ -68,7 +63,7 @@ const ChatScreen = () => {
         );
         const data = await response.json();
         
-        // কনসোলে মডেলের লিস্ট প্রিন্ট হবে
+        
         console.log("Available Models:", JSON.stringify(data, null, 2));
         
         
@@ -86,7 +81,7 @@ const ChatScreen = () => {
 const handleSend = async () => {
     if (!input.trim()) return;
 
-    // ১. ইউজারের মেসেজ অ্যাড করা
+   
     const userMsg: Message = { id: Date.now().toString(), sender: 'user', text: input };
     const newMessages = [...messages, userMsg];
     
@@ -99,7 +94,7 @@ const handleSend = async () => {
     try {
       const apiHistory = getHistoryForGemini(newMessages.slice(1));
 
-      // ২. API কল (System Instruction সহ)
+      
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`,
         {
@@ -108,7 +103,7 @@ const handleSend = async () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            // 🔥 এই অংশটিই জেমিনিকে "Real Gemini" এর মতো কথা বলা শেখাবে
+            
             system_instruction: {
               parts: {
                 text: `You are Gemini, a highly advanced and helpful AI assistant. 
@@ -122,8 +117,8 @@ const handleSend = async () => {
             },
             contents: apiHistory,
             generationConfig: {
-              temperature: 0.9, // ক্রিয়েটিভিটি আরও বাড়ানো হলো (ন্যাচারাল ফিলিংসের জন্য)
-              maxOutputTokens: 4000, // বড় উত্তরের জন্য টোকেন লিমিট অনেক বাড়ানো হলো
+              temperature: 0.9, 
+              maxOutputTokens: 4000, 
             },
           }),
         }
@@ -131,9 +126,8 @@ const handleSend = async () => {
 
       const data = await response.json();
 
-      // ৩. এরর চেকিং (মডেলের নাম ভুল হলে এখানে ধরা পড়বে)
+
       if (data.error) {
-        // যদি 2.5-flash না পায়, কনসোলে এরর দেখাবে
         console.error("Model Error:", data.error);
         throw new Error(data.error.message);
       }
@@ -151,7 +145,6 @@ const handleSend = async () => {
     } catch (error: any) {
       console.error("Gemini API Error:", error);
       
-      // এরর মেসেজ ইউজারের কাছে শো করা
       let errorMessage = "Something went wrong.";
       
       if (error.message.includes('not found') || error.message.includes('404')) {
@@ -175,7 +168,6 @@ const handleSend = async () => {
     const isUser = item.sender === 'user';
     return (
       <View style={[styles.messageRow, isUser ? styles.rowReverse : styles.rowStart]}>
-        {/* Avatar: Lucide এর বদলে Expo Icons */}
         <View style={[styles.avatar, isUser ? styles.userAvatar : styles.botAvatar]}>
           {isUser ? (
             <Ionicons name="person" size={18} color="#FFF" />
@@ -196,10 +188,8 @@ const handleSend = async () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
 
-      {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerIconContainer}>
-          {/* Header Icon */}
           <MaterialCommunityIcons name="robot-excited" size={24} color="#FFF" />
         </View>
         <View>
@@ -208,7 +198,6 @@ const handleSend = async () => {
         </View>
       </View>
 
-      {/* CHAT AREA */}
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
         style={styles.keyboardView}
@@ -230,7 +219,6 @@ const handleSend = async () => {
           }
         />
 
-        {/* INPUT */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -249,7 +237,6 @@ const handleSend = async () => {
             {isLoading ? (
               <ActivityIndicator size="small" color="#FFF" />
             ) : (
-              // Send Icon
               <Ionicons name="send" size={20} color="#FFF" />
             )}
           </TouchableOpacity>

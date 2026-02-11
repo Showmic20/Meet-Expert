@@ -10,7 +10,7 @@ import { useAuth } from 'app/lib/AuthProvid';
 import LottieView from 'lottie-react-native';
 
 
-// ---------- helpers ---------------------------------------------------------
+
 const uniq = (arr: string[]) => Array.from(new Set(arr.map((s) => s.trim()).filter(Boolean)));
 
 async function uploadProfileImage(userId: string, uri: string | null): Promise<string | null> {
@@ -48,7 +48,7 @@ async function upsertVocabAndLink(
   }
 }
 
-// ---------- component -------------------------------------------------------
+
 const OnboardingSwiper = () => {
  
   // this is for testing
@@ -108,7 +108,7 @@ const addChips = (type: 'skill' | 'interest') => {
    try {
     console.log("Im am in Onboard");
     
-    // 1) Ensure session
+    // Ensure session
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session?.user) {
@@ -117,10 +117,10 @@ const addChips = (type: 'skill' | 'interest') => {
     }
     const userId = session.user.id;
 
-    // 2) Upload avatar (optional)
+    //  Upload avatar (optional)
     const profileUrl = await uploadProfileImage(userId, imageUri);
 
-    // 3) Upsert user profile
+    // Upsert user profile
     const payload: any = {
       id: userId,
       first_name: (firstName || "").trim() || "Unknown",
@@ -131,7 +131,7 @@ const addChips = (type: 'skill' | 'interest') => {
       profile_picture_url: profileUrl,
       is_expert: isExpert,
       expert_since: isExpert ? new Date().toISOString() : null,
-      // 🔹 if column exists, you can set true now or after links—either is fine
+
       has_onboarded: true,
     };
     if (dob) payload.dob = dob.toISOString().slice(0, 10);
@@ -139,14 +139,11 @@ const addChips = (type: 'skill' | 'interest') => {
     const { error: upErr } = await supabase.from('users').upsert(payload) .eq('id', userId);
     if (upErr) throw upErr;
 
-    // 4) Link skills & interests (optional)
+    // Link skills & interests (optional)
     if (skills?.length)    await upsertVocabAndLink('skills', 'user_skills', userId, skills);
     if (interests?.length) await upsertVocabAndLink('interests', 'user_interests', userId, interests);
 
-    // 5) (Optional) If you didn’t set has_onboarded above, do it here:
-    // await supabase.from('users').update({ has_onboarded: true }).eq('id', userId);
 
-    // 6) Go to app
    setOnboarded(true); 
     router.replace("/(tabs)/home");
     return;
@@ -162,7 +159,7 @@ const addChips = (type: 'skill' | 'interest') => {
     <Onboarding
       showDone
       showSkip
-      onSkip={() => router.replace('/(tabs)/home')} // 🔹 skip goes home
+      onSkip={() => router.replace('/(tabs)/home')} 
       onDone={finish}
       pages={[
         {
@@ -444,7 +441,7 @@ const addChips = (type: 'skill' | 'interest') => {
 
 export default OnboardingSwiper;
 
-// ---------- styles ----------------------------------------------------------
+
 const styles = StyleSheet.create({
   centerCol: {  flex:1, width: 320,gap: 10, marginTop: 50 },
   qTitle: { fontSize: 24, fontFamily: 'InriaSansBold', textAlign: 'center' },

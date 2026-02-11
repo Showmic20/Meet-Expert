@@ -13,7 +13,7 @@ import {
   ThemeProvider as NavigationThemeProvider,
 } from '@react-navigation/native';
 
-// 1. Merge Navigation Themes with Paper Themes
+
 const { LightTheme, DarkTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
   reactNavigationDark: NavigationDarkTheme,
@@ -25,7 +25,7 @@ const CombinedLightTheme = {
   colors: {
     ...MD3LightTheme.colors,
     ...LightTheme.colors,
-    primary: '#2196F3', // Change your primary color here
+    primary: '#2196F3', 
     background: '#ffffff',
     surface: '#ffffff',
   },
@@ -60,7 +60,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  // 2. Load saved theme from storage
+  
   useEffect(() => {
     const loadTheme = async () => {
       try {
@@ -79,7 +79,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     loadTheme();
   }, []);
 
-  // 3. Toggle function
+  
   const toggleTheme = async () => {
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
@@ -88,14 +88,14 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   const theme = isDarkMode ? CombinedDarkTheme : CombinedLightTheme;
 
-  // Prevent white flash while loading
+ 
   if (!loaded) {
     return null; 
   }
 
   return (
     <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
-      {/* We cast to 'any' to avoid TypeScript conflicts between Paper and Navigation types */}
+      
       <PaperProvider theme={theme as any}>
         <NavigationThemeProvider value={theme as any}>
           {children}
@@ -103,4 +103,5 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       </PaperProvider>
     </ThemeContext.Provider>
   );
+  
 };

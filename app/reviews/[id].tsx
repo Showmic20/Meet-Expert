@@ -18,7 +18,7 @@ export default function ReviewsListScreen() {
     const fetchReviews = async () => {
       if (!id) return;
       
-      // Fetch Expert Name
+      
       const { data: userData } = await supabase
         .from('users')
         .select('first_name, last_name')
@@ -27,7 +27,7 @@ export default function ReviewsListScreen() {
         
       if(userData) setExpertName(`${userData.first_name} ${userData.last_name}`);
 
-      // Fetch Reviews with correct relationship
+      
       const { data, error } = await supabase
         .from('reviews')
         .select(`
@@ -88,18 +88,17 @@ export default function ReviewsListScreen() {
   );
 
   return (
-    // 🔴 পরিবর্তন ১: মেইন কন্টেইনার এখন সাধারণ View (backgroundColor: 'white' সহ)
+    
     <View style={{ flex: 1, backgroundColor: 'white' }}>
       
-      {/* 🔴 পরিবর্তন ২: Appbar.Header এখন SafeAreaView এর বাইরে */}
+   
       <Appbar.Header style={{ backgroundColor: 'white', elevation: 0 }}>
         <Appbar.BackAction onPress={() => router.back()} />
         <Appbar.Content title="Reviews & Ratings" /> 
-        {/* যদি টাইটেল বামে চান তবে নিচের লাইনটি ব্যবহার করুন */}
-        {/* <Appbar.Content title="Reviews & Ratings" style={{ alignItems: 'flex-start' }} /> */}
+
       </Appbar.Header>
 
-      {/* 🔴 পরিবর্তন ৩: শুধু বডি কন্টেন্ট SafeAreaView এর ভেতরে থাকবে (নিচের দিক সেফ রাখার জন্য) */}
+  
       <SafeAreaView style={{ flex: 1 }} edges={['bottom', 'left', 'right']}>
         
         {!loading && reviews.length > 0 && (
@@ -155,4 +154,5 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', marginTop: 100 },
   emptyText: { marginTop: 10, color: 'gray', fontSize: 16, fontWeight: 'bold' },
   subText: { color: '#999', fontSize: 14 }
+  
 });

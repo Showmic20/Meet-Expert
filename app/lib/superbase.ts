@@ -13,4 +13,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false, // Disable detecting session from URL (useful for web apps)
   },
 });
+
 export default supabase;
