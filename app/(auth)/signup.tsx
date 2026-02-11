@@ -1,20 +1,33 @@
-// app/(auth)/signup.tsx
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Keyboard, TouchableWithoutFeedback, Image } from "react-native";
-import { TextInput, Button, Paragraph } from "react-native-paper"; // Import Paper components
-import { supabase } from "../lib/superbase"; // Import Supabase client
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  Keyboard, 
+  TouchableWithoutFeedback, 
+  Image, 
+  StyleSheet, 
+  KeyboardAvoidingView, 
+  Platform 
+} from "react-native";
+import { TextInput, Button, Paragraph } from "react-native-paper"; 
+import { supabase } from "../lib/superbase"; 
 import { router } from "expo-router";
-import { KeyboardAvoidingView, Platform } from "react-native";
-import { StyleSheet } from "react-native";
-const logo = require("assets/images/meetexpertlogo.png")
+
+// ইমেজ পাথ আপনার প্রজেক্ট কনফিগারেশন অনুযায়ী ঠিক আছে কিনা দেখে নেবেন
+const logo = require("assets/images/meetexpertlogo.png");
+
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const logo = require("assets/images/meetexpertlogo.png");
 
   const handleSignup = async () => {
+    // এরর রিসেট করা
+    setError(null);
+    setSuccess(null);
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -24,10 +37,7 @@ const Signup = () => {
       setError(error.message);
     } else {
       setSuccess("Signup successful! Please check your email to confirm.");
-      const userId = data.user?.id;
-     
       setTimeout(() => {
-        //router.push("/(auth)/onBoarding");
         router.push("/(auth)/login");
       }, 2000);
     }
@@ -36,35 +46,54 @@ const Signup = () => {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"} // Adjust behavior based on platform
-    >
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 16 }}>
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+    > 
+      {/* 🔴 WEB FIX: ওয়েবে Keyboard.dismiss দরকার নেই, তাই onPress ডিজেবল রাখা হয়েছে */}
+      <TouchableWithoutFeedback onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 16, backgroundColor: '#fff' }}>
 
-          <Image source ={logo} style ={[styles.imagestyle]}/>
+          <Image source={logo} style={styles.imagestyle} resizeMode="contain" />
 
           <TextInput
+            testID="signup_email" // 🟢 Cypress ID
             label="Email"
             value={email}
             onChangeText={setEmail}
-            style={{ width: "100%", marginBottom: 20 }}
+            style={{ width: "100%", marginBottom: 20, backgroundColor: 'white' }}
             keyboardType="email-address"
+            autoCapitalize="none"
+            mode="outlined" // পেপার স্টাইল (অপশনাল)
           />
+          
           <TextInput
+            testID="signup_password" // 🟢 Cypress ID
             label="Password"
             value={password}
             onChangeText={setPassword}
-            style={{ width: "100%", marginBottom: 20 }}
+            style={{ width: "100%", marginBottom: 20, backgroundColor: 'white' }}
             secureTextEntry
+            mode="outlined"
           />
-          <Button mode="contained" onPress={handleSignup} style={{ width: "100%", marginBottom: 20 }}>
+          
+          <Button 
+            testID="signup_button" // 🟢 Cypress ID
+            mode="contained" 
+            onPress={handleSignup} 
+            style={{ width: "100%", marginBottom: 20 }}
+          >
             Sign Up
           </Button>
-          {error && <Paragraph style={{ color: "red", textAlign: "center" }}>{error}</Paragraph>}
-          {success && <Paragraph style={{ color: "green", textAlign: "center" }}>{success}</Paragraph>}
-          <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-            <Text style={{ color: "#1E90FF" }}>Already have an account? Login</Text>
+
+          {error && <Paragraph style={{ color: "red", textAlign: "center", marginBottom: 10 }}>{error}</Paragraph>}
+          {success && <Paragraph style={{ color: "green", textAlign: "center", marginBottom: 10 }}>{success}</Paragraph>}
+          
+          <TouchableOpacity 
+            testID="go_to_login" // 🟢 Cypress ID
+            onPress={() => router.push("/(auth)/login")}
+          >
+            <Text style={{ color: "#1E90FF", marginTop: 10 }}>Already have an account? Login</Text>
           </TouchableOpacity>
+
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -72,14 +101,19 @@ const Signup = () => {
 };
 
 export default Signup;
+
 const styles = StyleSheet.create({
   shadowBox: {
-      elevation: 5, // For Android shadow
-    shadowColor: "#000", // iOS shadow color
-    shadowOffset: { width: 0, height: 4 }, // iOS shadow offset
-    shadowOpacity: 0.5, // iOS shadow opacity
-    shadowRadius: 4, // iOS shadow radius
+    elevation: 5, 
+    shadowColor: "#000", 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.5, 
+    shadowRadius: 4, 
   },
-  imagestyle:
-  {height: 100, width: 100, marginBottom: 100, shadowColor:"black"} ,
+  imagestyle: {
+    height: 100, 
+    width: 100, 
+    marginBottom: 50, // মার্জিন একটু কমানো হয়েছে যাতে দেখতে সুন্দর লাগে
+    shadowColor:"black"
+  },
 });

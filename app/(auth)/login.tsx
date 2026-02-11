@@ -86,12 +86,13 @@ const handleLogin = async () => {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"} // Adjust behavior based on platform
     > 
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+      <TouchableWithoutFeedback onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 16 }}>
           <Image source={logo}  style={styles.imagestyel}/>
               
 
           <TextInput
+            testID="email_input"
             label="Email"
             value={email}
             onChangeText={setEmail}
@@ -99,17 +100,18 @@ const handleLogin = async () => {
             keyboardType="email-address"
           />
           <TextInput
+          testID="password_input"
             label="Password"
             value={password}
             onChangeText={setPassword}
             style={[styles.input,styles.shadowinput]}
             secureTextEntry
           />
-          <Button mode="contained" onPress={handleLogin} style={[styles.button, styles.shadowbutton]}>
+          <Button mode="contained"testID="login_button" onPress={handleLogin} style={[styles.button, styles.shadowbutton]}>
             Log In
           </Button>
           {error && <Paragraph style={{ color: "red", textAlign: "center" }}>{error}</Paragraph>}
-          <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
+          <TouchableOpacity testID="go_to_signup" onPress={() => router.push("/(auth)/signup")}>
             <Text style={{ color: "#1E90FF" }}>Don't have an account? Sign Up</Text>
           </TouchableOpacity>
         </View>

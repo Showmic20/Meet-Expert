@@ -62,14 +62,14 @@ const MOCK_EDUCATION = [
     school: "United International University",
     degree: "Bachelor in Law - Law Department",
     year: "2020 - 2024",
-    logo: "https://upload.wikimedia.org/wikipedia/en/thumb/c/c2/United_International_University_Monogram.svg/1200px-United_International_University_Monogram.svg.png" 
+    logo: "https://en.wikipedia.org/wiki/United_International_University#/media/File:United_International_University_Monogram.svg" 
   },
   {
     id: 2,
     school: "Dhaka Residential Model College",
     degree: "Science Group",
     year: "2018 - 2020",
-    logo: "https://upload.wikimedia.org/wikipedia/en/2/23/Dhaka_Residential_Model_College_Logo.png"
+    logo: "https://cdn-icons-png.flaticon.com/512/2997/2997264.png"
   }
 ];
 
@@ -127,6 +127,23 @@ export default function ProfileScreen() {
   const hourlyRate = user?.chat_subscription_bdt ?? 50; 
   const location = user?.location || "Dhaka, Bangladesh";
   const isVerifiedBoolean = user?.is_verified || verificationStatus === 'approved';
+  const MOCK_EDUCATION = [
+  {
+    id: 1,
+    school: "United International University",
+    degree: "Bachelor in Law - Law Department",
+    year: "2020 - 2024",
+    logo: require('../../../assets/images/uiulogo.png'),
+   //  logo: "https://en.wikipedia.org/wiki/United_International_University#/media/File:United_International_University_Monogram.svg"
+  },
+  {
+    id: 2,
+    school: "Dhaka Residential Model College",
+    degree: "Science Group",
+    year: "2018 - 2020",
+     logo: require('../../../assets/images/drmclogo.png'),
+  }
+];
   
   const calculatedPrice = Math.round((duration / 60) * hourlyRate);
 
@@ -305,8 +322,8 @@ export default function ProfileScreen() {
             <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>About</Text></View>
             <Text style={styles.bioText} numberOfLines={4}>{bio}<Text style={styles.seeMoreText}> see more...</Text></Text>
           </View>
-
-          {/* EDUCATION SECTION */}
+{/* EDUCATION SECTION */}
+{/* EDUCATION SECTION */}
           <View style={styles.cardSection}>
              <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Education</Text>
@@ -317,10 +334,20 @@ export default function ProfileScreen() {
                    </View>
                 )}
              </View>
+             
              {MOCK_EDUCATION.map((edu, index) => (
                  <View key={edu.id}>
                    <View style={styles.eduItem}>
-                     <Image source={{ uri: edu.logo }} style={styles.eduLogo} />
+                     
+                     {/* 🟢 ফিক্স: Avatar.Image ব্যবহার করা হয়েছে */}
+                     <View style={{ marginRight: 15 }}>
+                        <Avatar.Image 
+                          size={48} 
+                          source={edu.logo }
+                          style={{ backgroundColor: '#f0f0f0' }} // হালকা ধূসর ব্যাকগ্রাউন্ড
+                        />
+                     </View>
+
                      <View style={styles.eduTextContainer}>
                        <Text style={styles.eduSchool}>{edu.school}</Text>
                        <Text style={styles.eduYear}>{edu.year}</Text>
@@ -330,7 +357,10 @@ export default function ProfileScreen() {
                    {index < MOCK_EDUCATION.length - 1 && <Divider style={styles.listDivider}/>}
                  </View>
              ))}
-             <TouchableOpacity style={styles.seeAllBtn}><Text style={styles.seeAllText}>See All</Text></TouchableOpacity>
+             
+             <TouchableOpacity style={styles.seeAllBtn}>
+               <Text style={styles.seeAllText}>See All</Text>
+             </TouchableOpacity>
           </View>
 
           {/* SKILLS SECTION */}
@@ -462,7 +492,22 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#333' },
   bioText: { fontSize: 13, color: '#444', lineHeight: 18 },
   seeMoreText: { color: 'gray', fontSize: 12 },
-  eduItem: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 8 },
+eduItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', // টেক্সট এবং লোগো সেন্টারে থাকবে
+    paddingVertical: 12 
+  },
+  logoContainer: {
+    width: 45,
+    height: 45,
+    marginRight: 12, // টেক্সট থেকে দূরত্ব
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff', // লোগোর ব্যাকগ্রাউন্ড
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee', // হালকা বর্ডার
+  },
   eduLogo: { width: 40, height: 40, resizeMode: 'contain', marginRight: 12 },
   eduTextContainer: { flex: 1 },
   eduSchool: { fontSize: 13, fontWeight: 'bold', color: '#000' },

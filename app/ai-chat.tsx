@@ -21,7 +21,7 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 // ==========================================
 // CONFIGURATION
 // ==========================================
-const GEMINI_API_KEY = 'AIzaSyAm2NEBXl6Uyl-Y8IyhiqWr1MdLZaxgeLA'; 
+const GEMINI_API_KEY = 'AIzaSyB48WvpPZnSg_PekKbqs9iiRWmWOYIQ6t8'; 
 const MODEL_NAME = 'gemini-2.5-flash';
 
 // ==========================================
@@ -71,7 +71,7 @@ const ChatScreen = () => {
         // কনসোলে মডেলের লিস্ট প্রিন্ট হবে
         console.log("Available Models:", JSON.stringify(data, null, 2));
         
-        // অথবা স্ক্রিনে একটি অ্যালার্ট দেখাবে (যেকোনো একটি মডেলের নাম)
+        
         if (data.models) {
           const validModel = data.models.find((m:any) => m.name.includes('gemini'));
          
